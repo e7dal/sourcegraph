@@ -19,6 +19,9 @@ type MockCodeIntelAPI struct {
 	// DefinitionsFunc is an instance of a mock function object controlling
 	// the behavior of the method Definitions.
 	DefinitionsFunc *CodeIntelAPIDefinitionsFunc
+	// DependenciesFunc is an instance of a mock function object controlling
+	// the behavior of the method Dependencies.
+	DependenciesFunc *CodeIntelAPIDependenciesFunc
 	// DiagnosticsFunc is an instance of a mock function object controlling
 	// the behavior of the method Diagnostics.
 	DiagnosticsFunc *CodeIntelAPIDiagnosticsFunc
@@ -43,6 +46,11 @@ func NewMockCodeIntelAPI() *MockCodeIntelAPI {
 		DefinitionsFunc: &CodeIntelAPIDefinitionsFunc{
 			defaultHook: func(context.Context, string, int, int, int) ([]api.ResolvedLocation, error) {
 				return nil, nil
+			},
+		},
+		DependenciesFunc: &CodeIntelAPIDependenciesFunc{
+			defaultHook: func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error) {
+				return nil, 0, nil
 			},
 		},
 		DiagnosticsFunc: &CodeIntelAPIDiagnosticsFunc{
@@ -80,6 +88,9 @@ func NewMockCodeIntelAPIFrom(i CodeIntelAPI) *MockCodeIntelAPI {
 	return &MockCodeIntelAPI{
 		DefinitionsFunc: &CodeIntelAPIDefinitionsFunc{
 			defaultHook: i.Definitions,
+		},
+		DependenciesFunc: &CodeIntelAPIDependenciesFunc{
+			defaultHook: i.Dependencies,
 		},
 		DiagnosticsFunc: &CodeIntelAPIDiagnosticsFunc{
 			defaultHook: i.Diagnostics,
@@ -215,6 +226,127 @@ func (c CodeIntelAPIDefinitionsFuncCall) Args() []interface{} {
 // invocation.
 func (c CodeIntelAPIDefinitionsFuncCall) Results() []interface{} {
 	return []interface{}{c.Result0, c.Result1}
+}
+
+// CodeIntelAPIDependenciesFunc describes the behavior when the Dependencies
+// method of the parent MockCodeIntelAPI instance is invoked.
+type CodeIntelAPIDependenciesFunc struct {
+	defaultHook func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error)
+	hooks       []func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error)
+	history     []CodeIntelAPIDependenciesFuncCall
+	mutex       sync.Mutex
+}
+
+// Dependencies delegates to the next hook function in the queue and stores
+// the parameter and result values of this invocation.
+func (m *MockCodeIntelAPI) Dependencies(v0 context.Context, v1 string, v2 int, v3 int, v4 int) ([]api.ResolvedDependency, int, error) {
+	r0, r1, r2 := m.DependenciesFunc.nextHook()(v0, v1, v2, v3, v4)
+	m.DependenciesFunc.appendCall(CodeIntelAPIDependenciesFuncCall{v0, v1, v2, v3, v4, r0, r1, r2})
+	return r0, r1, r2
+}
+
+// SetDefaultHook sets function that is called when the Dependencies method
+// of the parent MockCodeIntelAPI instance is invoked and the hook queue is
+// empty.
+func (f *CodeIntelAPIDependenciesFunc) SetDefaultHook(hook func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error)) {
+	f.defaultHook = hook
+}
+
+// PushHook adds a function to the end of hook queue. Each invocation of the
+// Dependencies method of the parent MockCodeIntelAPI instance inovkes the
+// hook at the front of the queue and discards it. After the queue is empty,
+// the default hook function is invoked for any future action.
+func (f *CodeIntelAPIDependenciesFunc) PushHook(hook func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error)) {
+	f.mutex.Lock()
+	f.hooks = append(f.hooks, hook)
+	f.mutex.Unlock()
+}
+
+// SetDefaultReturn calls SetDefaultDefaultHook with a function that returns
+// the given values.
+func (f *CodeIntelAPIDependenciesFunc) SetDefaultReturn(r0 []api.ResolvedDependency, r1 int, r2 error) {
+	f.SetDefaultHook(func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error) {
+		return r0, r1, r2
+	})
+}
+
+// PushReturn calls PushDefaultHook with a function that returns the given
+// values.
+func (f *CodeIntelAPIDependenciesFunc) PushReturn(r0 []api.ResolvedDependency, r1 int, r2 error) {
+	f.PushHook(func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error) {
+		return r0, r1, r2
+	})
+}
+
+func (f *CodeIntelAPIDependenciesFunc) nextHook() func(context.Context, string, int, int, int) ([]api.ResolvedDependency, int, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if len(f.hooks) == 0 {
+		return f.defaultHook
+	}
+
+	hook := f.hooks[0]
+	f.hooks = f.hooks[1:]
+	return hook
+}
+
+func (f *CodeIntelAPIDependenciesFunc) appendCall(r0 CodeIntelAPIDependenciesFuncCall) {
+	f.mutex.Lock()
+	f.history = append(f.history, r0)
+	f.mutex.Unlock()
+}
+
+// History returns a sequence of CodeIntelAPIDependenciesFuncCall objects
+// describing the invocations of this function.
+func (f *CodeIntelAPIDependenciesFunc) History() []CodeIntelAPIDependenciesFuncCall {
+	f.mutex.Lock()
+	history := make([]CodeIntelAPIDependenciesFuncCall, len(f.history))
+	copy(history, f.history)
+	f.mutex.Unlock()
+
+	return history
+}
+
+// CodeIntelAPIDependenciesFuncCall is an object that describes an
+// invocation of method Dependencies on an instance of MockCodeIntelAPI.
+type CodeIntelAPIDependenciesFuncCall struct {
+	// Arg0 is the value of the 1st argument passed to this method
+	// invocation.
+	Arg0 context.Context
+	// Arg1 is the value of the 2nd argument passed to this method
+	// invocation.
+	Arg1 string
+	// Arg2 is the value of the 3rd argument passed to this method
+	// invocation.
+	Arg2 int
+	// Arg3 is the value of the 4th argument passed to this method
+	// invocation.
+	Arg3 int
+	// Arg4 is the value of the 5th argument passed to this method
+	// invocation.
+	Arg4 int
+	// Result0 is the value of the 1st result returned from this method
+	// invocation.
+	Result0 []api.ResolvedDependency
+	// Result1 is the value of the 2nd result returned from this method
+	// invocation.
+	Result1 int
+	// Result2 is the value of the 3rd result returned from this method
+	// invocation.
+	Result2 error
+}
+
+// Args returns an interface slice containing the arguments of this
+// invocation.
+func (c CodeIntelAPIDependenciesFuncCall) Args() []interface{} {
+	return []interface{}{c.Arg0, c.Arg1, c.Arg2, c.Arg3, c.Arg4}
+}
+
+// Results returns an interface slice containing the results of this
+// invocation.
+func (c CodeIntelAPIDependenciesFuncCall) Results() []interface{} {
+	return []interface{}{c.Result0, c.Result1, c.Result2}
 }
 
 // CodeIntelAPIDiagnosticsFunc describes the behavior when the Diagnostics
@@ -3132,6 +3264,9 @@ type MockLSIFStore struct {
 	// PackageInformationFunc is an instance of a mock function object
 	// controlling the behavior of the method PackageInformation.
 	PackageInformationFunc *LSIFStorePackageInformationFunc
+	// PackageInformationsFunc is an instance of a mock function object
+	// controlling the behavior of the method PackageInformations.
+	PackageInformationsFunc *LSIFStorePackageInformationsFunc
 	// RangesFunc is an instance of a mock function object controlling the
 	// behavior of the method Ranges.
 	RangesFunc *LSIFStoreRangesFunc
@@ -3179,6 +3314,11 @@ func NewMockLSIFStore() *MockLSIFStore {
 				return lsifstore.PackageInformationData{}, false, nil
 			},
 		},
+		PackageInformationsFunc: &LSIFStorePackageInformationsFunc{
+			defaultHook: func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+				return nil, 0, nil
+			},
+		},
 		RangesFunc: &LSIFStoreRangesFunc{
 			defaultHook: func(context.Context, int, string, int, int) ([]lsifstore.CodeIntelligenceRange, error) {
 				return nil, nil
@@ -3216,6 +3356,9 @@ func NewMockLSIFStoreFrom(i LSIFStore) *MockLSIFStore {
 		},
 		PackageInformationFunc: &LSIFStorePackageInformationFunc{
 			defaultHook: i.PackageInformation,
+		},
+		PackageInformationsFunc: &LSIFStorePackageInformationsFunc{
+			defaultHook: i.PackageInformations,
 		},
 		RangesFunc: &LSIFStoreRangesFunc{
 			defaultHook: i.Ranges,
@@ -4061,6 +4204,128 @@ func (c LSIFStorePackageInformationFuncCall) Args() []interface{} {
 // Results returns an interface slice containing the results of this
 // invocation.
 func (c LSIFStorePackageInformationFuncCall) Results() []interface{} {
+	return []interface{}{c.Result0, c.Result1, c.Result2}
+}
+
+// LSIFStorePackageInformationsFunc describes the behavior when the
+// PackageInformations method of the parent MockLSIFStore instance is
+// invoked.
+type LSIFStorePackageInformationsFunc struct {
+	defaultHook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)
+	hooks       []func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)
+	history     []LSIFStorePackageInformationsFuncCall
+	mutex       sync.Mutex
+}
+
+// PackageInformations delegates to the next hook function in the queue and
+// stores the parameter and result values of this invocation.
+func (m *MockLSIFStore) PackageInformations(v0 context.Context, v1 int, v2 string, v3 int, v4 int) ([]lsifstore.PackageInformationData, int, error) {
+	r0, r1, r2 := m.PackageInformationsFunc.nextHook()(v0, v1, v2, v3, v4)
+	m.PackageInformationsFunc.appendCall(LSIFStorePackageInformationsFuncCall{v0, v1, v2, v3, v4, r0, r1, r2})
+	return r0, r1, r2
+}
+
+// SetDefaultHook sets function that is called when the PackageInformations
+// method of the parent MockLSIFStore instance is invoked and the hook queue
+// is empty.
+func (f *LSIFStorePackageInformationsFunc) SetDefaultHook(hook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)) {
+	f.defaultHook = hook
+}
+
+// PushHook adds a function to the end of hook queue. Each invocation of the
+// PackageInformations method of the parent MockLSIFStore instance inovkes
+// the hook at the front of the queue and discards it. After the queue is
+// empty, the default hook function is invoked for any future action.
+func (f *LSIFStorePackageInformationsFunc) PushHook(hook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)) {
+	f.mutex.Lock()
+	f.hooks = append(f.hooks, hook)
+	f.mutex.Unlock()
+}
+
+// SetDefaultReturn calls SetDefaultDefaultHook with a function that returns
+// the given values.
+func (f *LSIFStorePackageInformationsFunc) SetDefaultReturn(r0 []lsifstore.PackageInformationData, r1 int, r2 error) {
+	f.SetDefaultHook(func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+		return r0, r1, r2
+	})
+}
+
+// PushReturn calls PushDefaultHook with a function that returns the given
+// values.
+func (f *LSIFStorePackageInformationsFunc) PushReturn(r0 []lsifstore.PackageInformationData, r1 int, r2 error) {
+	f.PushHook(func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+		return r0, r1, r2
+	})
+}
+
+func (f *LSIFStorePackageInformationsFunc) nextHook() func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if len(f.hooks) == 0 {
+		return f.defaultHook
+	}
+
+	hook := f.hooks[0]
+	f.hooks = f.hooks[1:]
+	return hook
+}
+
+func (f *LSIFStorePackageInformationsFunc) appendCall(r0 LSIFStorePackageInformationsFuncCall) {
+	f.mutex.Lock()
+	f.history = append(f.history, r0)
+	f.mutex.Unlock()
+}
+
+// History returns a sequence of LSIFStorePackageInformationsFuncCall
+// objects describing the invocations of this function.
+func (f *LSIFStorePackageInformationsFunc) History() []LSIFStorePackageInformationsFuncCall {
+	f.mutex.Lock()
+	history := make([]LSIFStorePackageInformationsFuncCall, len(f.history))
+	copy(history, f.history)
+	f.mutex.Unlock()
+
+	return history
+}
+
+// LSIFStorePackageInformationsFuncCall is an object that describes an
+// invocation of method PackageInformations on an instance of MockLSIFStore.
+type LSIFStorePackageInformationsFuncCall struct {
+	// Arg0 is the value of the 1st argument passed to this method
+	// invocation.
+	Arg0 context.Context
+	// Arg1 is the value of the 2nd argument passed to this method
+	// invocation.
+	Arg1 int
+	// Arg2 is the value of the 3rd argument passed to this method
+	// invocation.
+	Arg2 string
+	// Arg3 is the value of the 4th argument passed to this method
+	// invocation.
+	Arg3 int
+	// Arg4 is the value of the 5th argument passed to this method
+	// invocation.
+	Arg4 int
+	// Result0 is the value of the 1st result returned from this method
+	// invocation.
+	Result0 []lsifstore.PackageInformationData
+	// Result1 is the value of the 2nd result returned from this method
+	// invocation.
+	Result1 int
+	// Result2 is the value of the 3rd result returned from this method
+	// invocation.
+	Result2 error
+}
+
+// Args returns an interface slice containing the arguments of this
+// invocation.
+func (c LSIFStorePackageInformationsFuncCall) Args() []interface{} {
+	return []interface{}{c.Arg0, c.Arg1, c.Arg2, c.Arg3, c.Arg4}
+}
+
+// Results returns an interface slice containing the results of this
+// invocation.
+func (c LSIFStorePackageInformationsFuncCall) Results() []interface{} {
 	return []interface{}{c.Result0, c.Result1, c.Result2}
 }
 

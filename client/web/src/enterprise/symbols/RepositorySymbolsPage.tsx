@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react'
 import { ResolvedRevisionSpec, RevisionSpec } from '../../../../shared/src/util/url'
+import { useObservable } from '../../../../shared/src/util/useObservable'
 import { BreadcrumbSetters } from '../../components/Breadcrumbs'
 import { RepoHeaderContributionsLifecycleProps } from '../../repo/RepoHeader'
 import { eventLogger } from '../../tracking/eventLogger'
@@ -16,6 +17,8 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ useBread
     }, [])
 
     useBreadcrumb(useMemo(() => ({ key: 'commits', element: <>Symbols</> }), []))
+
+    const deps = useObservable(useMemo(() => a, []))
 
     return (
         <div>

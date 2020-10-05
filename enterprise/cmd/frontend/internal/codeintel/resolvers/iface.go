@@ -17,6 +17,7 @@ type CodeIntelAPI interface {
 	References(ctx context.Context, repositoryID int, commit string, limit int, cursor api.Cursor) ([]api.ResolvedLocation, api.Cursor, bool, error)
 	Hover(ctx context.Context, file string, line, character, uploadID int) (string, lsifstore.Range, bool, error)
 	Diagnostics(ctx context.Context, prefix string, uploadID, limit, offset int) ([]api.ResolvedDiagnostic, int, error)
+	Dependencies(ctx context.Context, prefix string, uploadID, limit, offset int) ([]api.ResolvedDependency, int, error)
 }
 
 type DBStore interface {

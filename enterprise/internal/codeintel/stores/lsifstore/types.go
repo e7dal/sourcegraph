@@ -48,6 +48,9 @@ type PackageInformationData struct {
 
 	// Version of the package.
 	Version string
+
+	// Package manager in which the package is defined.
+	Manager string
 }
 
 // DiagnosticData carries diagnostic information attached to a range within its
@@ -119,6 +122,7 @@ type Package struct {
 	Scheme  string
 	Name    string
 	Version string
+	Manager string
 }
 
 // PackageReferences pairs a package name/version with a dump that depends on it.
@@ -127,6 +131,7 @@ type PackageReference struct {
 	Scheme  string
 	Name    string
 	Version string
+	Manager string
 	Filter  []byte // a bloom filter of identifiers imported by this dependent
 }
 

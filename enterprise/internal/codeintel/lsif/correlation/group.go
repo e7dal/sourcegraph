@@ -132,6 +132,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 				document.PackageInformation[toID(moniker.PackageInformationID)] = lsifstore.PackageInformationData{
 					Name:    packageInformation.Name,
 					Version: packageInformation.Version,
+					Manager: packageInformation.Manager,
 				}
 			}
 		})
@@ -326,6 +327,7 @@ func gatherPackages(state *State, dumpID int) []lsifstore.Package {
 			Scheme:  source.Scheme,
 			Name:    packageInfo.Name,
 			Version: packageInfo.Version,
+			Manager: packageInfo.Manager,
 		}
 	})
 
@@ -342,6 +344,7 @@ func gatherPackageReferences(state *State, dumpID int) ([]lsifstore.PackageRefer
 		Scheme      string
 		Name        string
 		Version     string
+		Manager     string
 		Identifiers []string
 	}
 
@@ -355,6 +358,7 @@ func gatherPackageReferences(state *State, dumpID int) ([]lsifstore.PackageRefer
 			Scheme:      source.Scheme,
 			Name:        packageInfo.Name,
 			Version:     packageInfo.Version,
+			Manager:     packageInfo.Manager,
 			Identifiers: append(uniques[key].Identifiers, source.Identifier),
 		}
 	})
@@ -371,6 +375,7 @@ func gatherPackageReferences(state *State, dumpID int) ([]lsifstore.PackageRefer
 			Scheme:  v.Scheme,
 			Name:    v.Name,
 			Version: v.Version,
+			Manager: v.Manager,
 			Filter:  filter,
 		})
 	}

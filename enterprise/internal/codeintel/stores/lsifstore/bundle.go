@@ -373,6 +373,63 @@ func (s *Store) PackageInformation(ctx context.Context, bundleID int, path, pack
 	return PackageInformationData{}, false, nil
 }
 
+// PackageInformations returns all package information data for the documents that have the given
+// path prefix. This method also returns the size of the complete result set to aid in pagination
+// (along with skip and take).
+func (s *Store) PackageInformations(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []PackageInformationData, _ int, err error) {
+	ctx, endObservation := s.operations.packageInformations.With(ctx, &err, observation.Args{LogFields: []log.Field{
+		log.Int("bundleID", bundleID),
+		log.String("prefix", prefix),
+		log.Int("skip", skip),
+		log.Int("take", take),
+	}})
+	defer endObservation(1, observation.Args{})
+
+	paths, err := s.getPathsWithPrefix(ctx, bundleID, prefix)
+	if err != nil {
+		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
+	}
+
+	uniquePackageInformations := map[PackageInformationData]struct{}{}
+	for _, path := range paths {
+		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
+		if err != nil {
+			return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
+		}
+		if !exists {
+			return nil, 0, nil
+		}
+
+		for _, packageInformationData := range documentData.PackageInformation {
+			uniquePackageInformations[packageInformationData] = struct{}{}
+		}
+	}
+	uniquePackageInformationList := make([]PackageInformationData, 0, len(uniquePackageInformations))
+	for packageInformationData := range uniquePackageInformations {
+		uniquePackageInformationList = append(uniquePackageInformationList, packageInformationData)
+	}
+	sort.Slice(uniquePackageInformationList, func(i, j int) bool {
+		a := uniquePackageInformationList[i]
+		b := uniquePackageInformationList[j]
+		return a.Manager < b.Manager || (a.Manager == b.Manager && a.Name < b.Name) || (a.Manager == b.Manager && a.Name == b.Name && a.Version < b.Version)
+	})
+
+	totalCount := len(uniquePackageInformationList)
+	packageInformations := make([]PackageInformationData, 0, len(uniquePackageInformationList))
+	for _, packageInformationData := range uniquePackageInformationList {
+		skip--
+		if skip < 0 && len(packageInformations) < take {
+			packageInformations = append(packageInformations, PackageInformationData{
+				Name:    packageInformationData.Name,
+				Version: packageInformationData.Version,
+				Manager: packageInformationData.Manager,
+			})
+		}
+	}
+
+	return packageInformations, totalCount, nil
+}
+
 // hover returns the hover text locations for the given range.
 func (s *Store) hover(ctx context.Context, bundleID int, path string, documentData DocumentData, r RangeData) (string, bool, error) {
 	if r.HoverResultID == "" {

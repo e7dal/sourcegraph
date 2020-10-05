@@ -6168,6 +6168,35 @@ interface TreeEntryLSIFData {
     Code diagnostics provided through LSIF.
     """
     diagnostics(first: Int): DiagnosticConnection!
+
+    dependencies(first: Int): DependencyConnection!
+}
+
+"""
+A list of dependencies.
+"""
+type DependencyConnection {
+    """
+    A list of dependencies.
+    """
+    nodes: [Dependency!]!
+
+    """
+    The total count of dependencies in the connection. This total count may be larger than the number of nodes
+    in this object when the result is paginated.
+    """
+    totalCount: Int!
+
+    """
+    Pagination information.
+    """
+    pageInfo: PageInfo!
+}
+
+type Dependency {
+    lsifName: String!
+    lsifVersion: String!
+    lsifManager: String!
 }
 
 """
@@ -6264,6 +6293,8 @@ type GitBlobLSIFData implements TreeEntryLSIFData {
     Code diagnostics provided through LSIF.
     """
     diagnostics(first: Int): DiagnosticConnection!
+
+    dependencies(first: Int): DependencyConnection!
 }
 
 """

@@ -316,6 +316,7 @@ func (s *ReferencePageResolver) handleSameRepoCursor(ctx context.Context, cursor
 
 func (s *ReferencePageResolver) handleRemoteRepoCursor(ctx context.Context, cursor Cursor) ([]ResolvedLocation, Cursor, bool, error) {
 	return s.resolveLocationsViaReferencePager(ctx, cursor, func(ctx context.Context) (int, store.ReferencePager, error) {
+		fmt.Printf("calling PackageReferencePager cursor=%+v\n", cursor)
 		totalCount, pager, err := s.dbStore.PackageReferencePager(ctx, cursor.Scheme, cursor.Name, cursor.Version, s.repositoryID, s.remoteDumpLimit)
 		if err != nil {
 			return 0, nil, pkgerrors.Wrap(err, "store.PackageReferencePager")
