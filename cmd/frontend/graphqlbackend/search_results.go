@@ -1088,7 +1088,7 @@ func (r *searchResolver) evaluatePatternExpression(ctx context.Context, scopePar
 		if term.Kind == query.And || term.Kind == query.Or {
 			return r.evaluateOperator(ctx, scopeParameters, term)
 		} else if term.Kind == query.Concat {
-			//r.setQuery(append(scopeParameters, term))
+			r.setQuery(append(scopeParameters, term))
 			return r.evaluateLeaf(ctx)
 		}
 	case query.Pattern:
