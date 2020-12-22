@@ -188,27 +188,25 @@ func TestAlertForDiffCommitSearchLimits(t *testing.T) {
 	}
 }
 
-func TestErrorToAlertStructuralSearch(t *testing.T) {
+func TestConvertErrorsForStructuralSearch(t *testing.T) {
 	cases := []struct {
-		name           string
-		errors         []error
-		wantErrors     []error
-		wantAlertTitle string
+		name       string
+		errors     []error
+		wantErrors []error
 	}{
 		{
-			name:           "multierr_is_unaffected",
-			errors:         []error{errors.New("some error")},
-			wantErrors:     []error{errors.New("some error")},
-			wantAlertTitle: "",
+			name:       "multierr_is_unaffected",
+			errors:     []error{errors.New("some error")},
+			wantErrors: []error{errors.New("some error")},
 		},
 		{
-			name: "surface_friendly_alert_on_oom_err_message",
+			name: "convert_text_errors_to_typed_errors",
 			errors: []error{
 				errors.New("some error"),
 				errors.New("Worker_oomed"),
 				errors.New("some other error"),
 				errors.New("Out of memory"),
-				errors.New("some other error"),
+				errors.New("yet another error"),
 				errors.New("no indexed repositories for structural search"),
 			},
 			wantErrors: []error{
@@ -216,10 +214,9 @@ func TestErrorToAlertStructuralSearch(t *testing.T) {
 				structuralSearchMemErr,
 				errors.New("some other error"),
 				structuralSearchMemSearcherErr,
-				errors.New("some other error"),
+				errors.New("yet another error"),
 				structuralSearchNoIndexReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
 			},
-			wantAlertTitle: "Structural search needs more memory",
 		},
 	}
 	for _, test := range cases {
@@ -230,6 +227,53 @@ func TestErrorToAlertStructuralSearch(t *testing.T) {
 		haveMultiErr := convertErrorsForStructuralSearch(multiErr)
 		if !reflect.DeepEqual(haveMultiErr.Errors, test.wantErrors) {
 			t.Fatalf("test %s, have errors: %q, want: %q", test.name, haveMultiErr.Errors, test.wantErrors)
+		}
+	}
+}
+
+func TestAlertForStructuralSearch(t *testing.T) {
+	cases := []struct {
+		name           string
+		errors         []error
+		wantAlertTitle string
+	}{
+		{
+			name: "surface_friendly_alert_on_oom_err_message",
+			errors: []error{
+				errors.New("some error"),
+				structuralSearchMemErr,
+				errors.New("some other error"),
+			},
+			wantAlertTitle: "Structural search needs more memory",
+		},
+		{
+			name: "surface_friendly_alert_on_oom_err_message",
+			errors: []error{
+				errors.New("some error"),
+				structuralSearchMemSearcherErr,
+				errors.New("some other error"),
+			},
+			wantAlertTitle: "Structural search needs more memory",
+		},
+		{
+			name: "surface_friendly_alert_on_oom_err_message",
+			errors: []error{
+				errors.New("some error"),
+				structuralSearchNoIndexReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
+				errors.New("some other error"),
+			},
+			wantAlertTitle: "Unindexed repositories or repository revisions with structural search",
+		},
+	}
+
+	for _, test := range cases {
+		multiErr := &multierror.Error{
+			Errors:      test.errors,
+			ErrorFormat: multierror.ListFormatFunc,
+		}
+		haveAlert := alertForStructuralSearch(multiErr)
+		if haveAlert.title != test.wantAlertTitle {
+			t.Fatalf("got: %s, want: %s", haveAlert.title, test.wantAlertTitle)
 		}
 	}
 }
