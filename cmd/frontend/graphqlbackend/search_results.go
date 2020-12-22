@@ -688,7 +688,7 @@ func (r *searchResolver) evaluateLeaf(ctx context.Context) (_ *SearchResultsReso
 		return r.paginatedResults(ctx)
 	}
 
-	rr, err := r.resultsWithTimeoutSuggestion(ctx)
+	rr, err := r.doResultsWithAlerts(ctx)
 	if rr != nil {
 		r.logSearchLatency(ctx, rr.ElapsedMilliseconds())
 	}
@@ -1195,10 +1195,10 @@ func (r *searchResolver) Results(ctx context.Context) (srr *SearchResultsResolve
 	return srr, err
 }
 
-// resultsWithTimeoutSuggestion calls doResults, and in case of deadline
-// exceeded returns a search alert with a did-you-mean link for the same
-// query with a longer timeout.
-func (r *searchResolver) resultsWithTimeoutSuggestion(ctx context.Context) (*SearchResultsResolver, error) {
+// doResultsWithAlerts calls doResults and converts errors to alerts. In case of
+// deadline exceeded it returns a search alert with a did-you-mean link for the
+// same query with a longer timeout.
+func (r *searchResolver) doResultsWithAlerts(ctx context.Context) (*SearchResultsResolver, error) {
 	start := time.Now()
 	rr, err := r.doResults(ctx, "")
 
@@ -2110,13 +2110,13 @@ func (missingRepoRevsErr) Error() string {
 }
 
 var structuralSearchMemErr = fmt.Errorf("structural search needs more memory")
-var structuralSearchMemSearcherErr = fmt.Errorf("structural search needs more memory")
+var structuralSearchMemSearcherErr = fmt.Errorf("searcher needs more memory")
 
-type structuralSearchNoIndexReposErr struct {
+type structuralSearchNoIndexedReposErr struct {
 	msg string
 }
 
-func (structuralSearchNoIndexReposErr) Error() string {
+func (structuralSearchNoIndexedReposErr) Error() string {
 	return "no indexed repositories for structural search"
 }
 
@@ -2137,7 +2137,7 @@ func convertErrorsForStructuralSearch(multiErr *multierror.Error) (newMultiErr *
 			} else {
 				msg = "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."
 			}
-			newMultiErr = multierror.Append(newMultiErr, structuralSearchNoIndexReposErr{msg: msg})
+			newMultiErr = multierror.Append(newMultiErr, structuralSearchNoIndexedReposErr{msg: msg})
 		} else {
 			newMultiErr = multierror.Append(newMultiErr, err)
 		}

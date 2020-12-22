@@ -528,7 +528,7 @@ func alertForDiffCommitSearch(err error) *searchAlert {
 // them to an alert. We surface one alert at a time, so for multiple errors only
 // the last converted error will be surfaced in the alert.
 func alertForStructuralSearch(err error) *searchAlert {
-	var indexErr structuralSearchNoIndexReposErr
+	var indexErr structuralSearchNoIndexedReposErr
 	if errors.Is(err, structuralSearchMemErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_needs_more_memory",

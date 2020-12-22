@@ -216,7 +216,7 @@ func TestAlertForStructuralSearch(t *testing.T) {
 			name: "surface_friendly_alert_on_oom_err_message",
 			errors: []error{
 				errors.New("some error"),
-				structuralSearchNoIndexReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
+				structuralSearchNoIndexedReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
 				errors.New("some other error"),
 			},
 			wantAlertTitle: "Unindexed repositories or repository revisions with structural search",
