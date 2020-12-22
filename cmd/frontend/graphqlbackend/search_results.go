@@ -2100,10 +2100,21 @@ func (r *searchResolver) doResults(ctx context.Context, forceOnlyResultType stri
 	return &resultsResolver, multiErr.ErrorOrNil()
 }
 
+type missingRepoRevsErr struct {
+	patternType     query.SearchType
+	missingRepoRevs []*search.RepositoryRevisions
+}
+
+func (missingRepoRevsErr) Error() string {
+	return "missing repository revisions"
+}
+
 var structuralSearchMemErr = fmt.Errorf("structural search needs more memory")
 var structuralSearchMemSearcherErr = fmt.Errorf("structural search needs more memory")
 
-type structuralSearchNoIndexReposErr struct{ msg string }
+type structuralSearchNoIndexReposErr struct {
+	msg string
+}
 
 func (structuralSearchNoIndexReposErr) Error() string {
 	return "no indexed repositories for structural search"
@@ -2132,15 +2143,6 @@ func convertErrorsForStructuralSearch(multiErr *multierror.Error) (newMultiErr *
 		}
 	}
 	return newMultiErr
-}
-
-type missingRepoRevsErr struct {
-	patternType     query.SearchType
-	missingRepoRevs []*search.RepositoryRevisions
-}
-
-func (missingRepoRevsErr) Error() string {
-	return "missing repository revisions"
 }
 
 // isContextError returns true if ctx.Err() is not nil or if err
