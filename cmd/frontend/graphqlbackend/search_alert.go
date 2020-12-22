@@ -535,7 +535,7 @@ func alertForStructuralSearch(err error) *searchAlert {
 			title:          "Structural search needs more memory",
 			description:    "Running your structural search may require more memory. If you are running the query on many repositories, try reducing the number of repositories with the `repo:` filter.",
 		}
-	} else if errors.Is(err, structuralSearchMemErr) {
+	} else if errors.Is(err, structuralSearchMemSearcherErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_needs_more_memory__give_searcher_more_memory",
 			title:          "Structural search needs more memory",
