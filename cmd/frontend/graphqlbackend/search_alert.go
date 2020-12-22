@@ -505,16 +505,16 @@ func alertForDiffCommitSearch(err error) *searchAlert {
 	if err == nil {
 		return nil
 	}
-	rErr := &RepoLimitErr{}
-	if errors.As(err, rErr) {
+	var rErr RepoLimitErr
+	if errors.As(err, &rErr) {
 		return &searchAlert{
 			prometheusType: "exceeded_diff_commit_search_limit",
 			title:          fmt.Sprintf("Too many matching repositories for %s search to handle", rErr.ResultType),
 			description:    fmt.Sprintf(`%s search can currently only handle searching over %d repositories at a time. Try using the "repo:" filter to narrow down which repositories to search, or using 'after:"1 week ago"'. Tracking issue: https://github.com/sourcegraph/sourcegraph/issues/6826`, strings.Title(rErr.ResultType), rErr.Max),
 		}
 	}
-	tErr := &TimeLimitErr{}
-	if errors.As(err, tErr) {
+	var tErr TimeLimitErr
+	if errors.As(err, &tErr) {
 		return &searchAlert{
 			prometheusType: "exceeded_diff_commit_with_time_search_limit",
 			title:          fmt.Sprintf("Too many matching repositories for %s search to handle", tErr.ResultType),
@@ -524,24 +524,26 @@ func alertForDiffCommitSearch(err error) *searchAlert {
 	return nil
 }
 
-// alertForStructuralSearch filters certain errors from multiErr and converts
-// them to an alert. We surface one alert at a time, so for multiple errors only
-// the last converted error will be surfaced in the alert.
+// alertForStructuralSearch returns an alert if multiErr contains certain errors
+// related to structural search. We surface one alert at a time, so for multiple
+// errors only the first error will be surfaced as alert.
 func alertForStructuralSearch(err error) *searchAlert {
-	var indexErr structuralSearchNoIndexedReposErr
 	if errors.Is(err, structuralSearchMemErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_needs_more_memory",
 			title:          "Structural search needs more memory",
 			description:    "Running your structural search may require more memory. If you are running the query on many repositories, try reducing the number of repositories with the `repo:` filter.",
 		}
-	} else if errors.Is(err, structuralSearchMemSearcherErr) {
+	}
+	if errors.Is(err, structuralSearchMemSearcherErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_needs_more_memory__give_searcher_more_memory",
 			title:          "Structural search needs more memory",
 			description:    `Running your structural search requires more memory. You could try reducing the number of repositories with the "repo:" filter. If you are an administrator, try double the memory allocated for the "searcher" service. If you're unsure, reach out to us at support@sourcegraph.com.`,
 		}
-	} else if errors.As(err, &indexErr) {
+	}
+	var indexErr structuralSearchNoIndexedReposErr
+	if errors.As(err, &indexErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_on_zero_indexed_repos",
 			title:          "Unindexed repositories or repository revisions with structural search",
