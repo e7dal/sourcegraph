@@ -1219,7 +1219,7 @@ func (r *searchResolver) doResultsWithAlerts(ctx context.Context) (*SearchResult
 	}
 
 	missingRepoRevs := missingRepoRevsErr{}
-	if ok := errors.As(err, &missingRepoRevs); ok {
+	if errors.As(err, &missingRepoRevs) {
 		alert = alertForMissingRepoRevs(missingRepoRevs.patternType, missingRepoRevs.missingRepoRevs)
 	}
 

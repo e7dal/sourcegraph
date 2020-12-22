@@ -506,7 +506,7 @@ func alertForDiffCommitSearch(err error) *searchAlert {
 		return nil
 	}
 	rErr := &RepoLimitErr{}
-	if ok := errors.As(err, rErr); ok {
+	if errors.As(err, rErr) {
 		return &searchAlert{
 			prometheusType: "exceeded_diff_commit_search_limit",
 			title:          fmt.Sprintf("Too many matching repositories for %s search to handle", rErr.ResultType),
@@ -514,7 +514,7 @@ func alertForDiffCommitSearch(err error) *searchAlert {
 		}
 	}
 	tErr := &TimeLimitErr{}
-	if ok := errors.As(err, tErr); ok {
+	if errors.As(err, tErr) {
 		return &searchAlert{
 			prometheusType: "exceeded_diff_commit_with_time_search_limit",
 			title:          fmt.Sprintf("Too many matching repositories for %s search to handle", tErr.ResultType),
@@ -541,7 +541,7 @@ func alertForStructuralSearch(err error) *searchAlert {
 			title:          "Structural search needs more memory",
 			description:    `Running your structural search requires more memory. You could try reducing the number of repositories with the "repo:" filter. If you are an administrator, try double the memory allocated for the "searcher" service. If you're unsure, reach out to us at support@sourcegraph.com.`,
 		}
-	} else if ok := errors.As(err, &indexErr); ok {
+	} else if errors.As(err, &indexErr) {
 		return &searchAlert{
 			prometheusType: "structural_search_on_zero_indexed_repos",
 			title:          "Unindexed repositories or repository revisions with structural search",
