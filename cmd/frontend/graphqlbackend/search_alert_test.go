@@ -180,10 +180,7 @@ func TestAlertForDiffCommitSearchLimits(t *testing.T) {
 	}
 
 	for _, test := range cases {
-		haveMultiErr, alert := alertForDiffCommitSearch(test.multiErr)
-		if haveMultiErr != nil {
-			t.Fatalf("the alert should have been filtered from the multierror")
-		}
+		alert := alertForDiffCommitSearch(test.multiErr)
 		haveAlertDescription := alert.description
 		if diff := cmp.Diff(test.wantAlertDescription, haveAlertDescription); diff != "" {
 			t.Fatalf("test %s, mismatched alert (-want, +got):\n%s", test.name, diff)
@@ -210,10 +207,17 @@ func TestErrorToAlertStructuralSearch(t *testing.T) {
 				errors.New("some error"),
 				errors.New("Worker_oomed"),
 				errors.New("some other error"),
+				errors.New("Out of memory"),
+				errors.New("some other error"),
+				errors.New("no indexed repositories for structural search"),
 			},
 			wantErrors: []error{
 				errors.New("some error"),
+				structuralSearchMemErr,
 				errors.New("some other error"),
+				structuralSearchMemSearcherErr,
+				errors.New("some other error"),
+				structuralSearchNoIndexReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
 			},
 			wantAlertTitle: "Structural search needs more memory",
 		},
@@ -223,16 +227,10 @@ func TestErrorToAlertStructuralSearch(t *testing.T) {
 			Errors:      test.errors,
 			ErrorFormat: multierror.ListFormatFunc,
 		}
-		haveMultiErr, haveAlert := alertForStructuralSearch(multiErr)
-
+		haveMultiErr := convertErrorsForStructuralSearch(multiErr)
 		if !reflect.DeepEqual(haveMultiErr.Errors, test.wantErrors) {
 			t.Fatalf("test %s, have errors: %q, want: %q", test.name, haveMultiErr.Errors, test.wantErrors)
 		}
-
-		if haveAlert != nil && haveAlert.title != test.wantAlertTitle {
-			t.Fatalf("test %s, have alert: %q, want: %q", test.name, haveAlert.title, test.wantAlertTitle)
-		}
-
 	}
 }
 

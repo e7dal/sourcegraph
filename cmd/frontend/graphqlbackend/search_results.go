@@ -1204,14 +1204,14 @@ func (r *searchResolver) resultsWithTimeoutSuggestion(ctx context.Context) (*Sea
 
 	var alert *searchAlert
 
-	multiErr, newAlert := alertForDiffCommitSearch(err.(*multierror.Error))
+	newAlert := alertForDiffCommitSearch(err)
 	if newAlert != nil {
 		alert = newAlert
 	}
 
-	multiErr, newAlert = alertForStructuralSearch(multiErr)
+	newAlert = alertForStructuralSearch(err)
 	if newAlert != nil {
-		alert = newAlert // takes higher precedence
+		alert = newAlert
 	}
 
 	if len(rr.SearchResults) == 0 && r.patternType != query.SearchTypeStructural && matchHoleRegexp.MatchString(r.originalQuery) {
@@ -1225,9 +1225,9 @@ func (r *searchResolver) resultsWithTimeoutSuggestion(ctx context.Context) (*Sea
 
 	// If we have some results, only log the error instead of returning it,
 	// because otherwise the client would not receive the partial results
-	if len(rr.SearchResults) > 0 && multiErr != nil {
-		log15.Error("Errors during search", "error", multiErr)
-		multiErr = nil
+	if len(rr.SearchResults) > 0 && err != nil {
+		log15.Error("Errors during search", "error", err)
+		err = nil
 	}
 
 	rr.alert = alert
@@ -2088,6 +2088,8 @@ func (r *searchResolver) doResults(ctx context.Context, forceOnlyResultType stri
 		multiErr = multierror.Append(multiErr, missingRepoRevsErr{r.patternType, resolved.MissingRepoRevs})
 	}
 
+	multiErr = convertErrorsForStructuralSearch(multiErr)
+
 	r.sortResults(ctx, results)
 
 	resultsResolver := SearchResultsResolver{
@@ -2095,8 +2097,41 @@ func (r *searchResolver) doResults(ctx context.Context, forceOnlyResultType stri
 		searchResultsCommon: common,
 		SearchResults:       results,
 	}
-
 	return &resultsResolver, multiErr.ErrorOrNil()
+}
+
+var structuralSearchMemErr = fmt.Errorf("structural search needs more memory")
+var structuralSearchMemSearcherErr = fmt.Errorf("structural search needs more memory")
+
+type structuralSearchNoIndexReposErr struct{ msg string }
+
+func (structuralSearchNoIndexReposErr) Error() string {
+	return "no indexed repositories for structural search"
+}
+
+// convertErrorsForStructuralSearch converts certain text-based errors to typed errors.
+func convertErrorsForStructuralSearch(multiErr *multierror.Error) (newMultiErr *multierror.Error) {
+	if multiErr == nil {
+		return newMultiErr
+	}
+	for _, err := range multiErr.Errors {
+		if strings.Contains(err.Error(), "Worker_oomed") || strings.Contains(err.Error(), "Worker_exited_abnormally") {
+			newMultiErr = multierror.Append(newMultiErr, structuralSearchMemErr)
+		} else if strings.Contains(err.Error(), "Out of memory") {
+			newMultiErr = multierror.Append(newMultiErr, structuralSearchMemSearcherErr)
+		} else if strings.Contains(err.Error(), "no indexed repositories for structural search") {
+			var msg string
+			if envvar.SourcegraphDotComMode() {
+				msg = "The good news is you can index any repository you like in a self-install. It takes less than 5 minutes to set up: https://docs.sourcegraph.com/#quickstart"
+			} else {
+				msg = "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."
+			}
+			newMultiErr = multierror.Append(newMultiErr, structuralSearchNoIndexReposErr{msg: msg})
+		} else {
+			newMultiErr = multierror.Append(newMultiErr, err)
+		}
+	}
+	return newMultiErr
 }
 
 type missingRepoRevsErr struct {
