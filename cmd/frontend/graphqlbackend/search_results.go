@@ -1230,6 +1230,12 @@ func (r *searchResolver) doResultsWithAlerts(ctx context.Context) (*SearchResult
 		err = nil
 	}
 
+	// If we have an alert and an error, log the error and just return the alert.
+	if alert != nil && err != nil {
+		log15.Error("Errors during search", "error", err)
+		err = nil
+	}
+
 	rr.alert = alert
 
 	// If we encountered a context timeout, it indicates one of the many result
