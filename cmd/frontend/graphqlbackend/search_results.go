@@ -1088,7 +1088,7 @@ func (r *searchResolver) evaluatePatternExpression(ctx context.Context, scopePar
 		if term.Kind == query.And || term.Kind == query.Or {
 			return r.evaluateOperator(ctx, scopeParameters, term)
 		} else if term.Kind == query.Concat {
-			r.setQuery(append(scopeParameters, term))
+			//r.setQuery(append(scopeParameters, term))
 			return r.evaluateLeaf(ctx)
 		}
 	case query.Pattern:
@@ -1201,6 +1201,36 @@ func (r *searchResolver) Results(ctx context.Context) (srr *SearchResultsResolve
 func (r *searchResolver) resultsWithTimeoutSuggestion(ctx context.Context) (*SearchResultsResolver, error) {
 	start := time.Now()
 	rr, err := r.doResults(ctx, "")
+
+	var alert *searchAlert
+
+	multiErr, newAlert := alertForDiffCommitSearch(err.(*multierror.Error))
+	if newAlert != nil {
+		alert = newAlert
+	}
+
+	multiErr, newAlert = alertForStructuralSearch(multiErr)
+	if newAlert != nil {
+		alert = newAlert // takes higher precedence
+	}
+
+	if len(rr.SearchResults) == 0 && r.patternType != query.SearchTypeStructural && matchHoleRegexp.MatchString(r.originalQuery) {
+		alert = alertForStructuralSearchNotSet(r.originalQuery)
+	}
+
+	missingRepoRevs := missingRepoRevsErr{}
+	if ok := errors.As(err, &missingRepoRevs); ok {
+		alert = alertForMissingRepoRevs(missingRepoRevs.patternType, missingRepoRevs.missingRepoRevs)
+	}
+
+	// If we have some results, only log the error instead of returning it,
+	// because otherwise the client would not receive the partial results
+	if len(rr.SearchResults) > 0 && multiErr != nil {
+		log15.Error("Errors during search", "error", multiErr)
+		multiErr = nil
+	}
+
+	rr.alert = alert
 
 	// If we encountered a context timeout, it indicates one of the many result
 	// type searchers (file, diff, symbol, etc) completely timed out and could not
@@ -2054,31 +2084,8 @@ func (r *searchResolver) doResults(ctx context.Context, forceOnlyResultType stri
 		common.excluded.Archived,
 		len(common.timedout))
 
-	var alert *searchAlert
-
-	multiErr, newAlert := alertForDiffCommitSearch(multiErr)
-	if newAlert != nil {
-		alert = newAlert
-	}
-
-	multiErr, newAlert = alertForStructuralSearch(multiErr)
-	if newAlert != nil {
-		alert = newAlert // takes higher precedence
-	}
-
-	if len(results) == 0 && r.patternType != query.SearchTypeStructural && matchHoleRegexp.MatchString(r.originalQuery) {
-		alert = alertForStructuralSearchNotSet(r.originalQuery)
-	}
-
 	if len(resolved.MissingRepoRevs) > 0 {
-		alert = alertForMissingRepoRevs(r.patternType, resolved.MissingRepoRevs)
-	}
-
-	// If we have some results, only log the error instead of returning it,
-	// because otherwise the client would not receive the partial results
-	if len(results) > 0 && multiErr != nil {
-		log15.Error("Errors during search", "error", multiErr)
-		multiErr = nil
+		multiErr = multierror.Append(multiErr, missingRepoRevsErr{r.patternType, resolved.MissingRepoRevs})
 	}
 
 	r.sortResults(ctx, results)
@@ -2087,10 +2094,18 @@ func (r *searchResolver) doResults(ctx context.Context, forceOnlyResultType stri
 		start:               start,
 		searchResultsCommon: common,
 		SearchResults:       results,
-		alert:               alert,
 	}
 
 	return &resultsResolver, multiErr.ErrorOrNil()
+}
+
+type missingRepoRevsErr struct {
+	patternType     query.SearchType
+	missingRepoRevs []*search.RepositoryRevisions
+}
+
+func (missingRepoRevsErr) Error() string {
+	return "missing repository revisions"
 }
 
 // isContextError returns true if ctx.Err() is not nil or if err
