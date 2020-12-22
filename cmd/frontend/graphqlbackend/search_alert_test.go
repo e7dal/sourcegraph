@@ -188,49 +188,6 @@ func TestAlertForDiffCommitSearchLimits(t *testing.T) {
 	}
 }
 
-func TestConvertErrorsForStructuralSearch(t *testing.T) {
-	cases := []struct {
-		name       string
-		errors     []error
-		wantErrors []error
-	}{
-		{
-			name:       "multierr_is_unaffected",
-			errors:     []error{errors.New("some error")},
-			wantErrors: []error{errors.New("some error")},
-		},
-		{
-			name: "convert_text_errors_to_typed_errors",
-			errors: []error{
-				errors.New("some error"),
-				errors.New("Worker_oomed"),
-				errors.New("some other error"),
-				errors.New("Out of memory"),
-				errors.New("yet another error"),
-				errors.New("no indexed repositories for structural search"),
-			},
-			wantErrors: []error{
-				errors.New("some error"),
-				structuralSearchMemErr,
-				errors.New("some other error"),
-				structuralSearchMemSearcherErr,
-				errors.New("yet another error"),
-				structuralSearchNoIndexReposErr{msg: "Learn more about managing indexed repositories in our documentation: https://docs.sourcegraph.com/admin/search#indexed-search."},
-			},
-		},
-	}
-	for _, test := range cases {
-		multiErr := &multierror.Error{
-			Errors:      test.errors,
-			ErrorFormat: multierror.ListFormatFunc,
-		}
-		haveMultiErr := convertErrorsForStructuralSearch(multiErr)
-		if !reflect.DeepEqual(haveMultiErr.Errors, test.wantErrors) {
-			t.Fatalf("test %s, have errors: %q, want: %q", test.name, haveMultiErr.Errors, test.wantErrors)
-		}
-	}
-}
-
 func TestAlertForStructuralSearch(t *testing.T) {
 	cases := []struct {
 		name           string
