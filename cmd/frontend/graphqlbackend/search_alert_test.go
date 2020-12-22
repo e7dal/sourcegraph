@@ -177,6 +177,11 @@ func TestAlertForDiffCommitSearchLimits(t *testing.T) {
 			multiErr:             multierror.Append(&multierror.Error{}, TimeLimitErr{ResultType: "commit", Max: 10000}),
 			wantAlertDescription: `Commit search can currently only handle searching over 10000 repositories at a time. Try using the "repo:" filter to narrow down which repositories to search. Tracking issue: https://github.com/sourcegraph/sourcegraph/issues/6826`,
 		},
+		{
+			name:                 "diff_search_works_with_multiple_errors",
+			multiErr:             multierror.Append(&multierror.Error{}, errors.New("some error"), RepoLimitErr{ResultType: "diff", Max: 50}, errors.New("some other error")),
+			wantAlertDescription: `Diff search can currently only handle searching over 50 repositories at a time. Try using the "repo:" filter to narrow down which repositories to search, or using 'after:"1 week ago"'. Tracking issue: https://github.com/sourcegraph/sourcegraph/issues/6826`,
+		},
 	}
 
 	for _, test := range cases {
