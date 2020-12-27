@@ -137,8 +137,8 @@ type PackageReference struct {
 
 // Symbol TODO(sqs)
 type Symbol struct {
-	Moniker  MonikerData
-	Location Location
+	Moniker   MonikerData
+	Locations []Location
 }
 
 // Location is an LSP-like location scoped to a dump.

@@ -3,6 +3,7 @@ package resolvers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -483,30 +484,25 @@ func (r *queryResolver) Symbols(ctx context.Context, limit int) (_ []AdjustedSym
 		LogFields: []log.Field{
 			log.Int("repositoryID", r.repositoryID),
 			log.String("commit", r.commit),
-			log.String("path", r.path),
 			log.String("uploadIDs", strings.Join(r.uploadIDs(), ", ")),
 			log.Int("limit", limit),
 		},
 	})
 	defer endObservation()
 
+	if r.path != "" {
+		return nil, 0, errors.New("unable to get symbols for non-root")
+	}
+
 	totalCount := 0
 	var allSymbols []codeintelapi.ResolvedSymbol
 	for i := range r.uploads {
-		adjustedPath, ok, err := r.positionAdjuster.AdjustPath(ctx, r.uploads[i].Commit, r.path, false)
-		if err != nil {
-			return nil, 0, err
-		}
-		if !ok {
-			continue
-		}
-
 		l := limit - len(allSymbols)
 		if l < 0 {
 			l = 0
 		}
 
-		symbols, count, err := r.codeIntelAPI.Symbols(ctx, adjustedPath, r.uploads[i].ID, l, 0)
+		symbols, count, err := r.codeIntelAPI.Symbols(ctx, r.uploads[i].ID, l, 0)
 		if err != nil {
 			return nil, 0, err
 		}

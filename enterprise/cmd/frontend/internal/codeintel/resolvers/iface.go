@@ -18,7 +18,7 @@ type CodeIntelAPI interface {
 	Hover(ctx context.Context, file string, line, character, uploadID int) (string, lsifstore.Range, bool, error)
 	Diagnostics(ctx context.Context, prefix string, uploadID, limit, offset int) ([]api.ResolvedDiagnostic, int, error)
 	Packages(ctx context.Context, prefix string, uploadID, limit, offset int) ([]api.ResolvedPackage, int, error)
-	Symbols(ctx context.Context, prefix string, uploadID, limit, offset int) ([]api.ResolvedSymbol, int, error)
+	Symbols(ctx context.Context, uploadID, limit, offset int) ([]api.ResolvedSymbol, int, error)
 }
 
 type DBStore interface {

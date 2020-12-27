@@ -430,65 +430,46 @@ func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip,
 	return packageInformations, totalCount, nil
 }
 
-// Symbols returns all symbols defined in the given path prefix. This method also returns the size
+// Symbols returns all symbols defined in the workspace. This method also returns the size
 // of the complete result set to aid in pagination (along with skip and take).
-func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []Symbol, _ int, err error) {
+func (s *Store) Symbols(ctx context.Context, bundleID int, skip, take int) (_ []Symbol, _ int, err error) {
 	ctx, endObservation := s.operations.symbols.With(ctx, &err, observation.Args{LogFields: []log.Field{
 		log.Int("bundleID", bundleID),
-		log.String("prefix", prefix),
 		log.Int("skip", skip),
 		log.Int("take", take),
 	}})
 	defer endObservation(1, observation.Args{})
 
-	paths, err := s.getPathsWithPrefix(ctx, bundleID, prefix)
+	const fakeTotal = 100 // TODO(sqs)
+
+	rows, err := s.readMonikerLocations(ctx, bundleID, "definitions", skip, take)
 	if err != nil {
-		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
+		return nil, 0, pkgerrors.Wrap(err, "store.ReadDefinitions")
 	}
 
 	var symbols []Symbol
-
-	for _, path := range paths {
-		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
-		if err != nil {
-			return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
+	for _, row := range rows {
+		symbol := Symbol{
+			Moniker: MonikerData{
+				Kind:       "export",
+				Scheme:     row.Scheme,
+				Identifier: row.Identifier,
+			},
 		}
-		if !exists {
-			return nil, 0, nil
-		}
 
-		for rangeID, r := range documentData.Ranges {
-			// Check if is definition.
-			if id
-
-			// TODO(sqs): are these monikers ones that are defined? or referenced? or both?
-			for _, monikerID := range r.MonikerIDs {
-				moniker, exists := documentData.Monikers[monikerID]
-				if !exists {
-					log15.Warn("malformed bundle: unknown moniker", "bundleID", bundleID, "path", path, "id", monikerID)
-					continue
-				}
-
-				if moniker.Kind != "export" {
-					continue
-				}
-
-				// TODO(sqs): only support 1 definition locatin
-				symbols = append(symbols, Symbol{
-					Moniker: moniker,
-					Location: Location{
-						DumpID: bundleID,
-						Path:   path,
-						Range:  newRange(r.StartLine, r.StartCharacter, r.EndLine, r.EndCharacter),
-					},
-				})
+		symbol.Locations = make([]Location, len(row.Locations))
+		for i, loc := range row.Locations {
+			symbol.Locations[i] = Location{
+				DumpID: bundleID,
+				Path:   loc.URI,
+				Range:  newRange(loc.StartLine, loc.StartCharacter, loc.EndLine, loc.EndCharacter),
 			}
 		}
+
+		symbols = append(symbols, symbol)
 	}
 
-	// TODO(sqs): apply skip, take
-
-	return symbols, len(symbols), nil
+	return symbols, fakeTotal, nil
 }
 
 // hover returns the hover text locations for the given range.
