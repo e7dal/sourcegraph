@@ -430,6 +430,64 @@ func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip,
 	return packageInformations, totalCount, nil
 }
 
+// Symbols returns all symbols defined in the given path prefix. This method also returns the size
+// of the complete result set to aid in pagination (along with skip and take).
+func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []Symbol, _ int, err error) {
+	ctx, endObservation := s.operations.symbols.With(ctx, &err, observation.Args{LogFields: []log.Field{
+		log.Int("bundleID", bundleID),
+		log.String("prefix", prefix),
+		log.Int("skip", skip),
+		log.Int("take", take),
+	}})
+	defer endObservation(1, observation.Args{})
+
+	paths, err := s.getPathsWithPrefix(ctx, bundleID, prefix)
+	if err != nil {
+		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
+	}
+
+	// TODO(sqs): collect symbols here
+	uniqueSymbols := map[SymbolInformationData]struct{}{}
+	for _, path := range paths {
+		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
+		if err != nil {
+			return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
+		}
+		if !exists {
+			return nil, 0, nil
+		}
+
+		for _, symbolInformationData := range documentData.SymbolInformation {
+			uniqueSymbols[symbolInformationData] = struct{}{}
+		}
+	}
+	uniqueSymbolList := make([]SymbolInformationData, 0, len(uniqueSymbols))
+	for symbolInformationData := range uniqueSymbols {
+		uniqueSymbolList = append(uniqueSymbolList, symbolInformationData)
+	}
+	sort.Slice(uniqueSymbolList, func(i, j int) bool {
+		a := uniqueSymbolList[i]
+		b := uniqueSymbolList[j]
+		return a.Manager < b.Manager || (a.Manager == b.Manager && a.Name < b.Name) || (a.Manager == b.Manager && a.Name == b.Name && a.Version < b.Version)
+	})
+
+	totalCount := len(uniqueSymbolList)
+	symbolInformations := make([]Symbol, 0, len(uniqueSymbolList))
+	for _, symbolInformationData := range uniqueSymbolList {
+		skip--
+		if skip < 0 && len(symbolInformations) < take {
+			symbolInformations = append(symbolInformations, Symbol{
+				Scheme:  "TODO", // TODO(sqs)
+				Name:    symbolInformationData.Name,
+				Version: symbolInformationData.Version,
+				Manager: symbolInformationData.Manager,
+			})
+		}
+	}
+
+	return symbolInformations, totalCount, nil
+}
+
 // hover returns the hover text locations for the given range.
 func (s *Store) hover(ctx context.Context, bundleID int, path string, documentData DocumentData, r RangeData) (string, bool, error) {
 	if r.HoverResultID == "" {

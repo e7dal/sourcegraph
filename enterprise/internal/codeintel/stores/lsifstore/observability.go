@@ -26,6 +26,7 @@ type operations struct {
 	readResultChunk    *observation.Operation
 	reaResultChunk     *observation.Operation
 	references         *observation.Operation
+	symbols            *observation.Operation
 	writeDefinitions   *observation.Operation
 	writeDocuments     *observation.Operation
 	writeMeta          *observation.Operation
@@ -68,6 +69,7 @@ func makeOperations(observationContext *observation.Context) *operations {
 		readResultChunk:    op("ReadResultChunk"),
 		reaResultChunk:     op("ReaResultChunk"),
 		references:         op("References"),
+		symbols:            op("Symbols"),
 		writeDefinitions:   op("WriteDefinitions"),
 		writeDocuments:     op("WriteDocuments"),
 		writeMeta:          op("WriteMeta"),

@@ -121,3 +121,17 @@ func (r *QueryResolver) Packages(ctx context.Context, args *gql.LSIFPackagesArgs
 
 	return NewPackageConnectionResolver(packages, totalCount), nil
 }
+
+func (r *QueryResolver) Symbols(ctx context.Context, args *gql.LSIFSymbolsArgs) (gql.SymbolConnectionResolver, error) {
+	limit := derefInt32(args.First, DefaultReferencesPageSize)
+	if limit <= 0 {
+		return nil, ErrIllegalLimit
+	}
+
+	symbols, totalCount, err := r.resolver.Symbols(ctx, limit)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewSymbolConnectionResolver(symbols, totalCount), nil
+}

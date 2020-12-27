@@ -135,6 +135,11 @@ type PackageReference struct {
 	Filter  []byte // a bloom filter of identifiers imported by this dependent
 }
 
+// Symbol TODO(sqs)
+type Symbol struct {
+	Moniker MonikerData
+}
+
 // Location is an LSP-like location scoped to a dump.
 type Location struct {
 	DumpID int

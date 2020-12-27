@@ -204,6 +204,7 @@ type UpdateRepositoryIndexConfigurationArgs struct {
 type GitTreeLSIFDataResolver interface {
 	Diagnostics(ctx context.Context, args *LSIFDiagnosticsArgs) (DiagnosticConnectionResolver, error)
 	Packages(ctx context.Context, args *LSIFPackagesArgs) (PackageConnectionResolver, error)
+	Symbols(ctx context.Context, args *LSIFSymbolsArgs) (SymbolConnectionResolver, error)
 }
 
 type GitBlobLSIFDataResolver interface {
@@ -246,6 +247,10 @@ type LSIFDiagnosticsArgs struct {
 }
 
 type LSIFPackagesArgs struct {
+	graphqlutil.ConnectionArgs
+}
+
+type LSIFSymbolsArgs struct {
 	graphqlutil.ConnectionArgs
 }
 
@@ -294,4 +299,23 @@ type PackageResolver interface {
 	Name() string
 	Version() string
 	Manager() string
+}
+
+type SymbolConnectionResolver interface {
+	Nodes(ctx context.Context) ([]SymbolResolver, error)
+	TotalCount(ctx context.Context) (int32, error)
+	PageInfo(ctx context.Context) (*graphqlutil.PageInfo, error)
+}
+
+type SymbolResolver interface {
+	Moniker() MonikerResolver
+	Definitions(ctx context.Context) (LocationConnectionResolver, error)
+	References(ctx context.Context) (LocationConnectionResolver, error)
+	Hover(context.Context) (HoverResolver, error)
+}
+
+type MonikerResolver interface {
+	Kind() string
+	Scheme() string
+	Identifier() string
 }

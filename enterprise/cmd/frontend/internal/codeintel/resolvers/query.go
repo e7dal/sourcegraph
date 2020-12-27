@@ -49,6 +49,13 @@ type AdjustedPackage struct {
 	AdjustedCommit string
 }
 
+// AdjustedSymbol is similar to a codeintelapi.ResolvedSymbol, but with TODO(sqs): describe
+// adjustment.
+type AdjustedSymbol struct {
+	lsifstore.Symbol
+	Dump store.Dump
+}
+
 // QueryResolver is the main interface to bundle-related operations exposed to the GraphQL API. This
 // resolver consolidates the logic for bundle operations and is not itself concerned with GraphQL/API
 // specifics (auth, validation, marshaling, etc.). This resolver is wrapped by a symmetrics resolver
@@ -60,6 +67,7 @@ type QueryResolver interface {
 	Hover(ctx context.Context, line, character int) (string, lsifstore.Range, bool, error)
 	Diagnostics(ctx context.Context, limit int) ([]AdjustedDiagnostic, int, error)
 	Packages(ctx context.Context, limit int) ([]AdjustedPackage, int, error)
+	Symbols(ctx context.Context, limit int) ([]AdjustedSymbol, int, error)
 }
 
 type queryResolver struct {
@@ -409,8 +417,10 @@ func (r *queryResolver) Diagnostics(ctx context.Context, limit int) (_ []Adjuste
 	return adjustedDiagnostics, totalCount, nil
 }
 
+const slowPackagesRequestThreshold = time.Second
+
 func (r *queryResolver) Packages(ctx context.Context, limit int) (_ []AdjustedPackage, _ int, err error) {
-	ctx, endObservation := observeResolver(ctx, &err, "Packages", r.operations.diagnostics, slowDiagnosticsRequestThreshold, observation.Args{
+	ctx, endObservation := observeResolver(ctx, &err, "Packages", r.operations.packages, slowPackagesRequestThreshold, observation.Args{
 		LogFields: []log.Field{
 			log.Int("repositoryID", r.repositoryID),
 			log.String("commit", r.commit),
@@ -437,13 +447,13 @@ func (r *queryResolver) Packages(ctx context.Context, limit int) (_ []AdjustedPa
 			l = 0
 		}
 
-		dependencies, count, err := r.codeIntelAPI.Packages(ctx, adjustedPath, r.uploads[i].ID, l, 0)
+		packages, count, err := r.codeIntelAPI.Packages(ctx, adjustedPath, r.uploads[i].ID, l, 0)
 		if err != nil {
 			return nil, 0, err
 		}
 
 		totalCount += count
-		allPackages = append(allPackages, dependencies...)
+		allPackages = append(allPackages, packages...)
 	}
 
 	adjustedPackages := make([]AdjustedPackage, 0, len(allPackages))
@@ -457,6 +467,58 @@ func (r *queryResolver) Packages(ctx context.Context, limit int) (_ []AdjustedPa
 	}
 
 	return adjustedPackages, totalCount, nil
+}
+
+const slowSymbolsRequestThreshold = time.Second
+
+func (r *queryResolver) Symbols(ctx context.Context, limit int) (_ []AdjustedSymbol, _ int, err error) {
+	ctx, endObservation := observeResolver(ctx, &err, "Symbols", r.operations.symbols, slowSymbolsRequestThreshold, observation.Args{
+		LogFields: []log.Field{
+			log.Int("repositoryID", r.repositoryID),
+			log.String("commit", r.commit),
+			log.String("path", r.path),
+			log.String("uploadIDs", strings.Join(r.uploadIDs(), ", ")),
+			log.Int("limit", limit),
+		},
+	})
+	defer endObservation()
+
+	totalCount := 0
+	var allSymbols []codeintelapi.ResolvedSymbol
+	for i := range r.uploads {
+		adjustedPath, ok, err := r.positionAdjuster.AdjustPath(ctx, r.uploads[i].Commit, r.path, false)
+		if err != nil {
+			return nil, 0, err
+		}
+		if !ok {
+			continue
+		}
+
+		l := limit - len(allSymbols)
+		if l < 0 {
+			l = 0
+		}
+
+		symbols, count, err := r.codeIntelAPI.Symbols(ctx, adjustedPath, r.uploads[i].ID, l, 0)
+		if err != nil {
+			return nil, 0, err
+		}
+		// TODO(sqs): call r.adjustLocations to re-adjust symbols' locations
+
+		totalCount += count
+		allSymbols = append(allSymbols, symbols...)
+	}
+
+	adjustedSymbols := make([]AdjustedSymbol, 0, len(allSymbols))
+	for i := range allSymbols {
+		// TODO(sqs): adjust?
+		adjustedSymbols = append(adjustedSymbols, AdjustedSymbol{
+			Symbol: allSymbols[i].Symbol,
+			Dump:   allSymbols[i].Dump,
+		})
+	}
+
+	return adjustedSymbols, totalCount, nil
 }
 
 // uploadIDs returns a slice of this query's matched upload identifiers.

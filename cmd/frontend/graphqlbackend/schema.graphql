@@ -5873,6 +5873,11 @@ type GitTree implements TreeEntry {
         """
         toolName: String
     ): TreeEntryLSIFData
+
+    """
+    TODO(sqs)
+    """
+    expSymbols: ExpSymbolConnection
 }
 
 """
@@ -6163,6 +6168,49 @@ interface TreeEntryLSIFData {
     diagnostics(first: Int): DiagnosticConnection!
 
     packages(first: Int): PackageConnection!
+}
+
+"""
+A list of symbols.
+"""
+type ExpSymbolConnection {
+    """
+    A list of symbols.
+    """
+    nodes: [ExpSymbol!]!
+
+    """
+    The total count of symbols in the connection. This total count may be larger than the number of nodes
+    in this object when the result is paginated.
+    """
+    totalCount: Int!
+
+    """
+    Pagination information.
+    """
+    pageInfo: PageInfo!
+}
+
+"""
+A symbol.
+"""
+type ExpSymbol {
+    hover: Hover
+
+    """
+    The location where this symbol is defined.
+    """
+    location: Location!
+
+    """
+    The URL to this symbol (using the input revision specifier, which may not be immutable).
+    """
+    url: String!
+
+    """
+    The canonical URL to this symbol (using an immutable revision specifier).
+    """
+    canonicalURL: String!
 }
 
 """
