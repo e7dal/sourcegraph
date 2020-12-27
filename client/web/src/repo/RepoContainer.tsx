@@ -436,6 +436,7 @@ export const RepoContainer: React.FunctionComponent<RepoContainerProps> = props 
                         '/-/blob',
                         '/-/tree',
                         '/-/commits',
+                        '/-/symbols',
                     ].map(routePath => (
                         <Route
                             path={`${repoMatchURL}${routePath}`}
