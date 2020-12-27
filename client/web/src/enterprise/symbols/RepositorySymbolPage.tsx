@@ -7,38 +7,46 @@ import { requestGraphQL } from '../../backend/graphql'
 import { BreadcrumbSetters } from '../../components/Breadcrumbs'
 import { RepoHeaderContributionsLifecycleProps } from '../../repo/RepoHeader'
 import { eventLogger } from '../../tracking/eventLogger'
-import { DepsFields, DepsResult, DepsVariables } from '../../graphql-operations'
+import { DepsFields, RepositorySymbolResult, RepositorySymbolVariables } from '../../graphql-operations'
 import { RepoRevisionContainerContext } from '../../repo/RepoRevisionContainer'
+import { RouteComponentProps } from 'react-router'
 
-const DepsGQLFragment = gql`
-    fragment DepsFields on GitTree {
-        lsif {
-            packages {
-                nodes {
-                    name
-                    version
-                    manager
-                }
+const ExpSymbolGQLFragment = gql`
+    fragment ExpSymbolFields on ExpSymbol {
+        moniker {
+            kind
+            scheme
+            identifier
+        }
+        hover {
+            markdown {
+                html
             }
         }
     }
 `
 
-const queryRepositorySymbols = (vars: DepsVariables): Observable<DepsFields | null> =>
-    requestGraphQL<DepsResult, DepsVariables>(
+const queryRepositorySymbol = (
+    vars: RepositorySymbolVariables & { scheme: string; identifier: string }
+): Observable<DepsFields | null> =>
+    requestGraphQL<RepositorySymbolResult, RepositorySymbolVariables>(
         gql`
-            query Deps($repo: ID!, $commitID: String!, $path: String!) {
+            query RepositorySymbol($repo: ID!, $commitID: String!) {
                 node(id: $repo) {
                     ... on Repository {
                         commit(rev: $commitID) {
-                            tree(path: $path) {
-                                ...DepsFields
+                            tree(path: "") {
+                                expSymbols {
+                                    nodes {
+                                        ...ExpSymbolFields
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-            ${DepsGQLFragment}
+            ${ExpSymbolGQLFragment}
         `,
         vars
     ).pipe(
@@ -48,18 +56,26 @@ const queryRepositorySymbols = (vars: DepsVariables): Observable<DepsFields | nu
 
 interface Props
     extends Pick<RepoRevisionContainerContext, 'repo' | 'resolvedRev'>,
+        RouteComponentProps<{ scheme: string; identifier: string }>,
         RepoHeaderContributionsLifecycleProps,
         BreadcrumbSetters {}
 
-export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ repo, resolvedRev, useBreadcrumb }) => {
+export const RepositorySymbolPage: React.FunctionComponent<Props> = ({
+    repo,
+    resolvedRev,
+    match: {
+        params: { scheme, identifier },
+    },
+    useBreadcrumb,
+}) => {
     useEffect(() => {
-        eventLogger.logViewEvent('RepositorySymbols')
+        eventLogger.logViewEvent('RepositorySymbol')
     }, [])
 
-    useBreadcrumb(useMemo(() => ({ key: 'symbols', element: <>Symbols</> }), []))
+    useBreadcrumb(useMemo(() => ({ key: 'symbol', element: <>Symbol</> }), []))
 
     const data = useObservable(
-        useMemo(() => queryRepositorySymbols({ repo: repo.id, commitID: resolvedRev.commitID, path: '.' }), [
+        useMemo(() => queryRepositorySymbol({ repo: repo.id, commitID: resolvedRev.commitID, scheme, identifier }), [
             repo.id,
             resolvedRev.commitID,
         ])

@@ -38,6 +38,8 @@ type ExpSymbol struct {
 	sym SymbolResolver
 }
 
+func (r *ExpSymbol) Moniker() MonikerResolver { return r.sym.Moniker() }
+
 func (r *ExpSymbol) Definitions(ctx context.Context) (LocationConnectionResolver, error) {
 	return r.sym.Definitions(ctx)
 }
@@ -50,6 +52,9 @@ func (r *ExpSymbol) Hover(ctx context.Context) (HoverResolver, error) {
 	return r.sym.Hover(ctx)
 }
 
-func (r *ExpSymbol) URL(ctx context.Context) (string, error) { return "TODO(sqs)", nil }
+func (r *ExpSymbol) URL(ctx context.Context) (string, error) {
+	// TODO(sqs): un-hardcode
+	return "/github.com/hashicorp/errwrap@v1.0.0/-/symbols/gomod/github.com/hashicorp/errwrap:Wrapper", nil
+}
 
 func (r *ExpSymbol) CanonicalURL() (string, error) { return "TODO(sqs)", nil }

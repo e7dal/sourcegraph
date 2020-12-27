@@ -6212,6 +6212,8 @@ type ExpSymbolConnection {
 A symbol.
 """
 type ExpSymbol {
+    moniker: Moniker!
+
     hover: Hover
 
     """
@@ -6233,6 +6235,12 @@ type ExpSymbol {
     The canonical URL to this symbol (using an immutable revision specifier).
     """
     canonicalURL: String!
+}
+
+type Moniker {
+    kind: String!
+    scheme: String!
+    identifier: String!
 }
 
 """

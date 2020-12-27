@@ -15,14 +15,8 @@ func NewMonikerResolver(moniker lsifstore.MonikerData) gql.MonikerResolver {
 	}
 }
 
-func (r *MonikerResolver) Kind() string {
-	panic("TODO")
-}
+func (r *MonikerResolver) Kind() string { return r.moniker.Kind }
 
-func (r *MonikerResolver) Scheme() string {
-	panic("TODO")
-}
+func (r *MonikerResolver) Scheme() string { return r.moniker.Scheme }
 
-func (r *MonikerResolver) Identifier() string {
-	panic("TODO")
-}
+func (r *MonikerResolver) Identifier() string { return r.moniker.Identifier }
