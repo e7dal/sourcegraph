@@ -203,7 +203,7 @@ type UpdateRepositoryIndexConfigurationArgs struct {
 
 type GitTreeLSIFDataResolver interface {
 	Diagnostics(ctx context.Context, args *LSIFDiagnosticsArgs) (DiagnosticConnectionResolver, error)
-	Dependencies(ctx context.Context, args *LSIFDependenciesArgs) (DependencyConnectionResolver, error)
+	Packages(ctx context.Context, args *LSIFPackagesArgs) (PackageConnectionResolver, error)
 }
 
 type GitBlobLSIFDataResolver interface {
@@ -245,7 +245,7 @@ type LSIFDiagnosticsArgs struct {
 	graphqlutil.ConnectionArgs
 }
 
-type LSIFDependenciesArgs struct {
+type LSIFPackagesArgs struct {
 	graphqlutil.ConnectionArgs
 }
 
@@ -284,14 +284,14 @@ type DiagnosticResolver interface {
 	Location(ctx context.Context) (LocationResolver, error)
 }
 
-type DependencyConnectionResolver interface {
-	Nodes(ctx context.Context) ([]DependencyResolver, error)
+type PackageConnectionResolver interface {
+	Nodes(ctx context.Context) ([]PackageResolver, error)
 	TotalCount(ctx context.Context) (int32, error)
 	PageInfo(ctx context.Context) (*graphqlutil.PageInfo, error)
 }
 
-type DependencyResolver interface {
-	LSIFName() string
-	LSIFVersion() string
-	LSIFManager() string
+type PackageResolver interface {
+	Name() string
+	Version() string
+	Manager() string
 }

@@ -5,6 +5,10 @@ import { repoContainerRoutes, repoRevisionContainerRoutes } from '../../repo/rou
 import { lazyComponent } from '../../util/lazyComponent'
 
 const RepositorySymbolsPage = lazyComponent(() => import('../symbols/RepositorySymbolsPage'), 'RepositorySymbolsPage')
+const RepositoryDependenciesPage = lazyComponent(
+    () => import('./network/RepositoryDependenciesPage'),
+    'RepositoryDependenciesPage'
+)
 
 export const enterpriseRepoContainerRoutes: readonly RepoContainerRoute[] = repoContainerRoutes
 
@@ -12,12 +16,10 @@ export const enterpriseRepoRevisionContainerRoutes: readonly RepoRevisionContain
     ...repoRevisionContainerRoutes,
     {
         path: '/-/symbols',
-        render: ({ resolvedRev: { commitID }, repoHeaderContributionsLifecycleProps, ...context }) => (
-            <RepositorySymbolsPage
-                {...context}
-                commitID={commitID}
-                repoHeaderContributionsLifecycleProps={repoHeaderContributionsLifecycleProps}
-            />
-        ),
+        render: context => <RepositorySymbolsPage {...context} />,
+    },
+    {
+        path: '/-/dependencies',
+        render: context => <RepositoryDependenciesPage {...context} />,
     },
 ]

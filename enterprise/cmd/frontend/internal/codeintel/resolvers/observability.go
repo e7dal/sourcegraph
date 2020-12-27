@@ -16,6 +16,7 @@ type operations struct {
 	definitions   *observation.Operation
 	diagnostics   *observation.Operation
 	hover         *observation.Operation
+	packages      *observation.Operation
 	ranges        *observation.Operation
 	references    *observation.Operation
 }
@@ -41,6 +42,7 @@ func makeOperations(observationContext *observation.Context) *operations {
 		definitions:   op("Definitions"),
 		diagnostics:   op("Diagnostics"),
 		hover:         op("Hover"),
+		packages:      op("Packages"),
 		ranges:        op("Ranges"),
 		references:    op("References"),
 	}

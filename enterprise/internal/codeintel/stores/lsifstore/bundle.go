@@ -373,11 +373,10 @@ func (s *Store) PackageInformation(ctx context.Context, bundleID int, path, pack
 	return PackageInformationData{}, false, nil
 }
 
-// PackageInformations returns all package information data for the documents that have the given
-// path prefix. This method also returns the size of the complete result set to aid in pagination
-// (along with skip and take).
-func (s *Store) PackageInformations(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []PackageInformationData, _ int, err error) {
-	ctx, endObservation := s.operations.packageInformations.With(ctx, &err, observation.Args{LogFields: []log.Field{
+// Packages returns all packages defined in the given path prefix. This method also returns the size
+// of the complete result set to aid in pagination (along with skip and take).
+func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []Package, _ int, err error) {
+	ctx, endObservation := s.operations.packages.With(ctx, &err, observation.Args{LogFields: []log.Field{
 		log.Int("bundleID", bundleID),
 		log.String("prefix", prefix),
 		log.Int("skip", skip),
@@ -390,7 +389,7 @@ func (s *Store) PackageInformations(ctx context.Context, bundleID int, prefix st
 		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
 	}
 
-	uniquePackageInformations := map[PackageInformationData]struct{}{}
+	uniquePackages := map[PackageInformationData]struct{}{}
 	for _, path := range paths {
 		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
 		if err != nil {
@@ -401,25 +400,26 @@ func (s *Store) PackageInformations(ctx context.Context, bundleID int, prefix st
 		}
 
 		for _, packageInformationData := range documentData.PackageInformation {
-			uniquePackageInformations[packageInformationData] = struct{}{}
+			uniquePackages[packageInformationData] = struct{}{}
 		}
 	}
-	uniquePackageInformationList := make([]PackageInformationData, 0, len(uniquePackageInformations))
-	for packageInformationData := range uniquePackageInformations {
-		uniquePackageInformationList = append(uniquePackageInformationList, packageInformationData)
+	uniquePackageList := make([]PackageInformationData, 0, len(uniquePackages))
+	for packageInformationData := range uniquePackages {
+		uniquePackageList = append(uniquePackageList, packageInformationData)
 	}
-	sort.Slice(uniquePackageInformationList, func(i, j int) bool {
-		a := uniquePackageInformationList[i]
-		b := uniquePackageInformationList[j]
+	sort.Slice(uniquePackageList, func(i, j int) bool {
+		a := uniquePackageList[i]
+		b := uniquePackageList[j]
 		return a.Manager < b.Manager || (a.Manager == b.Manager && a.Name < b.Name) || (a.Manager == b.Manager && a.Name == b.Name && a.Version < b.Version)
 	})
 
-	totalCount := len(uniquePackageInformationList)
-	packageInformations := make([]PackageInformationData, 0, len(uniquePackageInformationList))
-	for _, packageInformationData := range uniquePackageInformationList {
+	totalCount := len(uniquePackageList)
+	packageInformations := make([]Package, 0, len(uniquePackageList))
+	for _, packageInformationData := range uniquePackageList {
 		skip--
 		if skip < 0 && len(packageInformations) < take {
-			packageInformations = append(packageInformations, PackageInformationData{
+			packageInformations = append(packageInformations, Package{
+				Scheme:  "TODO", // TODO(sqs)
 				Name:    packageInformationData.Name,
 				Version: packageInformationData.Version,
 				Manager: packageInformationData.Manager,

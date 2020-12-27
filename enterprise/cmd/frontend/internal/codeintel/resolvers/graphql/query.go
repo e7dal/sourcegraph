@@ -108,16 +108,16 @@ func (r *QueryResolver) Diagnostics(ctx context.Context, args *gql.LSIFDiagnosti
 	return NewDiagnosticConnectionResolver(diagnostics, totalCount, r.locationResolver), nil
 }
 
-func (r *QueryResolver) Dependencies(ctx context.Context, args *gql.LSIFDependenciesArgs) (gql.DependencyConnectionResolver, error) {
+func (r *QueryResolver) Packages(ctx context.Context, args *gql.LSIFPackagesArgs) (gql.PackageConnectionResolver, error) {
 	limit := derefInt32(args.First, DefaultReferencesPageSize)
 	if limit <= 0 {
 		return nil, ErrIllegalLimit
 	}
 
-	dependencies, totalCount, err := r.resolver.Dependencies(ctx, limit)
+	packages, totalCount, err := r.resolver.Packages(ctx, limit)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewDependencyConnectionResolver(dependencies, totalCount), nil
+	return NewPackageConnectionResolver(packages, totalCount), nil
 }

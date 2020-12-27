@@ -1723,9 +1723,9 @@ type MockLSIFStore struct {
 	// PackageInformationFunc is an instance of a mock function object
 	// controlling the behavior of the method PackageInformation.
 	PackageInformationFunc *LSIFStorePackageInformationFunc
-	// PackageInformationsFunc is an instance of a mock function object
-	// controlling the behavior of the method PackageInformations.
-	PackageInformationsFunc *LSIFStorePackageInformationsFunc
+	// PackagesFunc is an instance of a mock function object controlling the
+	// behavior of the method Packages.
+	PackagesFunc *LSIFStorePackagesFunc
 	// RangesFunc is an instance of a mock function object controlling the
 	// behavior of the method Ranges.
 	RangesFunc *LSIFStoreRangesFunc
@@ -1773,8 +1773,8 @@ func NewMockLSIFStore() *MockLSIFStore {
 				return lsifstore.PackageInformationData{}, false, nil
 			},
 		},
-		PackageInformationsFunc: &LSIFStorePackageInformationsFunc{
-			defaultHook: func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+		PackagesFunc: &LSIFStorePackagesFunc{
+			defaultHook: func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error) {
 				return nil, 0, nil
 			},
 		},
@@ -1816,8 +1816,8 @@ func NewMockLSIFStoreFrom(i LSIFStore) *MockLSIFStore {
 		PackageInformationFunc: &LSIFStorePackageInformationFunc{
 			defaultHook: i.PackageInformation,
 		},
-		PackageInformationsFunc: &LSIFStorePackageInformationsFunc{
-			defaultHook: i.PackageInformations,
+		PackagesFunc: &LSIFStorePackagesFunc{
+			defaultHook: i.Packages,
 		},
 		RangesFunc: &LSIFStoreRangesFunc{
 			defaultHook: i.Ranges,
@@ -2666,36 +2666,34 @@ func (c LSIFStorePackageInformationFuncCall) Results() []interface{} {
 	return []interface{}{c.Result0, c.Result1, c.Result2}
 }
 
-// LSIFStorePackageInformationsFunc describes the behavior when the
-// PackageInformations method of the parent MockLSIFStore instance is
-// invoked.
-type LSIFStorePackageInformationsFunc struct {
-	defaultHook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)
-	hooks       []func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)
-	history     []LSIFStorePackageInformationsFuncCall
+// LSIFStorePackagesFunc describes the behavior when the Packages method of
+// the parent MockLSIFStore instance is invoked.
+type LSIFStorePackagesFunc struct {
+	defaultHook func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error)
+	hooks       []func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error)
+	history     []LSIFStorePackagesFuncCall
 	mutex       sync.Mutex
 }
 
-// PackageInformations delegates to the next hook function in the queue and
-// stores the parameter and result values of this invocation.
-func (m *MockLSIFStore) PackageInformations(v0 context.Context, v1 int, v2 string, v3 int, v4 int) ([]lsifstore.PackageInformationData, int, error) {
-	r0, r1, r2 := m.PackageInformationsFunc.nextHook()(v0, v1, v2, v3, v4)
-	m.PackageInformationsFunc.appendCall(LSIFStorePackageInformationsFuncCall{v0, v1, v2, v3, v4, r0, r1, r2})
+// Packages delegates to the next hook function in the queue and stores the
+// parameter and result values of this invocation.
+func (m *MockLSIFStore) Packages(v0 context.Context, v1 int, v2 string, v3 int, v4 int) ([]lsifstore.Package, int, error) {
+	r0, r1, r2 := m.PackagesFunc.nextHook()(v0, v1, v2, v3, v4)
+	m.PackagesFunc.appendCall(LSIFStorePackagesFuncCall{v0, v1, v2, v3, v4, r0, r1, r2})
 	return r0, r1, r2
 }
 
-// SetDefaultHook sets function that is called when the PackageInformations
-// method of the parent MockLSIFStore instance is invoked and the hook queue
-// is empty.
-func (f *LSIFStorePackageInformationsFunc) SetDefaultHook(hook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)) {
+// SetDefaultHook sets function that is called when the Packages method of
+// the parent MockLSIFStore instance is invoked and the hook queue is empty.
+func (f *LSIFStorePackagesFunc) SetDefaultHook(hook func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error)) {
 	f.defaultHook = hook
 }
 
 // PushHook adds a function to the end of hook queue. Each invocation of the
-// PackageInformations method of the parent MockLSIFStore instance inovkes
-// the hook at the front of the queue and discards it. After the queue is
-// empty, the default hook function is invoked for any future action.
-func (f *LSIFStorePackageInformationsFunc) PushHook(hook func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error)) {
+// Packages method of the parent MockLSIFStore instance inovkes the hook at
+// the front of the queue and discards it. After the queue is empty, the
+// default hook function is invoked for any future action.
+func (f *LSIFStorePackagesFunc) PushHook(hook func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error)) {
 	f.mutex.Lock()
 	f.hooks = append(f.hooks, hook)
 	f.mutex.Unlock()
@@ -2703,21 +2701,21 @@ func (f *LSIFStorePackageInformationsFunc) PushHook(hook func(context.Context, i
 
 // SetDefaultReturn calls SetDefaultDefaultHook with a function that returns
 // the given values.
-func (f *LSIFStorePackageInformationsFunc) SetDefaultReturn(r0 []lsifstore.PackageInformationData, r1 int, r2 error) {
-	f.SetDefaultHook(func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+func (f *LSIFStorePackagesFunc) SetDefaultReturn(r0 []lsifstore.Package, r1 int, r2 error) {
+	f.SetDefaultHook(func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error) {
 		return r0, r1, r2
 	})
 }
 
 // PushReturn calls PushDefaultHook with a function that returns the given
 // values.
-func (f *LSIFStorePackageInformationsFunc) PushReturn(r0 []lsifstore.PackageInformationData, r1 int, r2 error) {
-	f.PushHook(func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+func (f *LSIFStorePackagesFunc) PushReturn(r0 []lsifstore.Package, r1 int, r2 error) {
+	f.PushHook(func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error) {
 		return r0, r1, r2
 	})
 }
 
-func (f *LSIFStorePackageInformationsFunc) nextHook() func(context.Context, int, string, int, int) ([]lsifstore.PackageInformationData, int, error) {
+func (f *LSIFStorePackagesFunc) nextHook() func(context.Context, int, string, int, int) ([]lsifstore.Package, int, error) {
 	f.mutex.Lock()
 	defer f.mutex.Unlock()
 
@@ -2730,26 +2728,26 @@ func (f *LSIFStorePackageInformationsFunc) nextHook() func(context.Context, int,
 	return hook
 }
 
-func (f *LSIFStorePackageInformationsFunc) appendCall(r0 LSIFStorePackageInformationsFuncCall) {
+func (f *LSIFStorePackagesFunc) appendCall(r0 LSIFStorePackagesFuncCall) {
 	f.mutex.Lock()
 	f.history = append(f.history, r0)
 	f.mutex.Unlock()
 }
 
-// History returns a sequence of LSIFStorePackageInformationsFuncCall
-// objects describing the invocations of this function.
-func (f *LSIFStorePackageInformationsFunc) History() []LSIFStorePackageInformationsFuncCall {
+// History returns a sequence of LSIFStorePackagesFuncCall objects
+// describing the invocations of this function.
+func (f *LSIFStorePackagesFunc) History() []LSIFStorePackagesFuncCall {
 	f.mutex.Lock()
-	history := make([]LSIFStorePackageInformationsFuncCall, len(f.history))
+	history := make([]LSIFStorePackagesFuncCall, len(f.history))
 	copy(history, f.history)
 	f.mutex.Unlock()
 
 	return history
 }
 
-// LSIFStorePackageInformationsFuncCall is an object that describes an
-// invocation of method PackageInformations on an instance of MockLSIFStore.
-type LSIFStorePackageInformationsFuncCall struct {
+// LSIFStorePackagesFuncCall is an object that describes an invocation of
+// method Packages on an instance of MockLSIFStore.
+type LSIFStorePackagesFuncCall struct {
 	// Arg0 is the value of the 1st argument passed to this method
 	// invocation.
 	Arg0 context.Context
@@ -2767,7 +2765,7 @@ type LSIFStorePackageInformationsFuncCall struct {
 	Arg4 int
 	// Result0 is the value of the 1st result returned from this method
 	// invocation.
-	Result0 []lsifstore.PackageInformationData
+	Result0 []lsifstore.Package
 	// Result1 is the value of the 2nd result returned from this method
 	// invocation.
 	Result1 int
@@ -2778,13 +2776,13 @@ type LSIFStorePackageInformationsFuncCall struct {
 
 // Args returns an interface slice containing the arguments of this
 // invocation.
-func (c LSIFStorePackageInformationsFuncCall) Args() []interface{} {
+func (c LSIFStorePackagesFuncCall) Args() []interface{} {
 	return []interface{}{c.Arg0, c.Arg1, c.Arg2, c.Arg3, c.Arg4}
 }
 
 // Results returns an interface slice containing the results of this
 // invocation.
-func (c LSIFStorePackageInformationsFuncCall) Results() []interface{} {
+func (c LSIFStorePackagesFuncCall) Results() []interface{} {
 	return []interface{}{c.Result0, c.Result1, c.Result2}
 }
 

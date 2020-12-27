@@ -61,7 +61,7 @@ type LSIFStore interface {
 	MonikersByPosition(ctx context.Context, bundleID int, path string, line, character int) ([][]lsifstore.MonikerData, error)
 	MonikerResults(ctx context.Context, bundleID int, tableName, scheme, identifier string, skip, take int) ([]lsifstore.Location, int, error)
 	PackageInformation(ctx context.Context, bundleID int, path string, packageInformationID string) (lsifstore.PackageInformationData, bool, error)
-	PackageInformations(ctx context.Context, bundleID int, prefix string, skip, take int) ([]lsifstore.PackageInformationData, int, error)
+	Packages(ctx context.Context, bundleID int, prefix string, skip, take int) ([]lsifstore.Package, int, error)
 }
 
 type GitserverClient interface {
