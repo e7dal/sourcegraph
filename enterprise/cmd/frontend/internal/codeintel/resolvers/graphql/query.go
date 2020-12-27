@@ -133,5 +133,12 @@ func (r *QueryResolver) Symbols(ctx context.Context, args *gql.LSIFSymbolsArgs) 
 		return nil, err
 	}
 
-	return NewSymbolConnectionResolver(symbols, totalCount), nil
+	newQueryResolver := func(ctx context.Context, path string) (*QueryResolver, error) {
+		type tmpWithPath interface {
+			TmpWithPath(path string) resolvers.QueryResolver
+		}
+		// TODO(sqs): hacky
+		return NewQueryResolver(r.resolver.(tmpWithPath).TmpWithPath(path), r.locationResolver).(*QueryResolver), nil
+	}
+	return NewSymbolConnectionResolver(symbols, totalCount, r.locationResolver, newQueryResolver), nil
 }

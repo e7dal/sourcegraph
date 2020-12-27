@@ -1732,6 +1732,9 @@ type MockLSIFStore struct {
 	// ReferencesFunc is an instance of a mock function object controlling
 	// the behavior of the method References.
 	ReferencesFunc *LSIFStoreReferencesFunc
+	// SymbolsFunc is an instance of a mock function object controlling the
+	// behavior of the method Symbols.
+	SymbolsFunc *LSIFStoreSymbolsFunc
 }
 
 // NewMockLSIFStore creates a new mock of the LSIFStore interface. All
@@ -1788,6 +1791,11 @@ func NewMockLSIFStore() *MockLSIFStore {
 				return nil, nil
 			},
 		},
+		SymbolsFunc: &LSIFStoreSymbolsFunc{
+			defaultHook: func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error) {
+				return nil, 0, nil
+			},
+		},
 	}
 }
 
@@ -1824,6 +1832,9 @@ func NewMockLSIFStoreFrom(i LSIFStore) *MockLSIFStore {
 		},
 		ReferencesFunc: &LSIFStoreReferencesFunc{
 			defaultHook: i.References,
+		},
+		SymbolsFunc: &LSIFStoreSymbolsFunc{
+			defaultHook: i.Symbols,
 		},
 	}
 }
@@ -3018,6 +3029,126 @@ func (c LSIFStoreReferencesFuncCall) Args() []interface{} {
 // invocation.
 func (c LSIFStoreReferencesFuncCall) Results() []interface{} {
 	return []interface{}{c.Result0, c.Result1}
+}
+
+// LSIFStoreSymbolsFunc describes the behavior when the Symbols method of
+// the parent MockLSIFStore instance is invoked.
+type LSIFStoreSymbolsFunc struct {
+	defaultHook func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error)
+	hooks       []func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error)
+	history     []LSIFStoreSymbolsFuncCall
+	mutex       sync.Mutex
+}
+
+// Symbols delegates to the next hook function in the queue and stores the
+// parameter and result values of this invocation.
+func (m *MockLSIFStore) Symbols(v0 context.Context, v1 int, v2 string, v3 int, v4 int) ([]lsifstore.Symbol, int, error) {
+	r0, r1, r2 := m.SymbolsFunc.nextHook()(v0, v1, v2, v3, v4)
+	m.SymbolsFunc.appendCall(LSIFStoreSymbolsFuncCall{v0, v1, v2, v3, v4, r0, r1, r2})
+	return r0, r1, r2
+}
+
+// SetDefaultHook sets function that is called when the Symbols method of
+// the parent MockLSIFStore instance is invoked and the hook queue is empty.
+func (f *LSIFStoreSymbolsFunc) SetDefaultHook(hook func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error)) {
+	f.defaultHook = hook
+}
+
+// PushHook adds a function to the end of hook queue. Each invocation of the
+// Symbols method of the parent MockLSIFStore instance inovkes the hook at
+// the front of the queue and discards it. After the queue is empty, the
+// default hook function is invoked for any future action.
+func (f *LSIFStoreSymbolsFunc) PushHook(hook func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error)) {
+	f.mutex.Lock()
+	f.hooks = append(f.hooks, hook)
+	f.mutex.Unlock()
+}
+
+// SetDefaultReturn calls SetDefaultDefaultHook with a function that returns
+// the given values.
+func (f *LSIFStoreSymbolsFunc) SetDefaultReturn(r0 []lsifstore.Symbol, r1 int, r2 error) {
+	f.SetDefaultHook(func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error) {
+		return r0, r1, r2
+	})
+}
+
+// PushReturn calls PushDefaultHook with a function that returns the given
+// values.
+func (f *LSIFStoreSymbolsFunc) PushReturn(r0 []lsifstore.Symbol, r1 int, r2 error) {
+	f.PushHook(func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error) {
+		return r0, r1, r2
+	})
+}
+
+func (f *LSIFStoreSymbolsFunc) nextHook() func(context.Context, int, string, int, int) ([]lsifstore.Symbol, int, error) {
+	f.mutex.Lock()
+	defer f.mutex.Unlock()
+
+	if len(f.hooks) == 0 {
+		return f.defaultHook
+	}
+
+	hook := f.hooks[0]
+	f.hooks = f.hooks[1:]
+	return hook
+}
+
+func (f *LSIFStoreSymbolsFunc) appendCall(r0 LSIFStoreSymbolsFuncCall) {
+	f.mutex.Lock()
+	f.history = append(f.history, r0)
+	f.mutex.Unlock()
+}
+
+// History returns a sequence of LSIFStoreSymbolsFuncCall objects describing
+// the invocations of this function.
+func (f *LSIFStoreSymbolsFunc) History() []LSIFStoreSymbolsFuncCall {
+	f.mutex.Lock()
+	history := make([]LSIFStoreSymbolsFuncCall, len(f.history))
+	copy(history, f.history)
+	f.mutex.Unlock()
+
+	return history
+}
+
+// LSIFStoreSymbolsFuncCall is an object that describes an invocation of
+// method Symbols on an instance of MockLSIFStore.
+type LSIFStoreSymbolsFuncCall struct {
+	// Arg0 is the value of the 1st argument passed to this method
+	// invocation.
+	Arg0 context.Context
+	// Arg1 is the value of the 2nd argument passed to this method
+	// invocation.
+	Arg1 int
+	// Arg2 is the value of the 3rd argument passed to this method
+	// invocation.
+	Arg2 string
+	// Arg3 is the value of the 4th argument passed to this method
+	// invocation.
+	Arg3 int
+	// Arg4 is the value of the 5th argument passed to this method
+	// invocation.
+	Arg4 int
+	// Result0 is the value of the 1st result returned from this method
+	// invocation.
+	Result0 []lsifstore.Symbol
+	// Result1 is the value of the 2nd result returned from this method
+	// invocation.
+	Result1 int
+	// Result2 is the value of the 3rd result returned from this method
+	// invocation.
+	Result2 error
+}
+
+// Args returns an interface slice containing the arguments of this
+// invocation.
+func (c LSIFStoreSymbolsFuncCall) Args() []interface{} {
+	return []interface{}{c.Arg0, c.Arg1, c.Arg2, c.Arg3, c.Arg4}
+}
+
+// Results returns an interface slice containing the results of this
+// invocation.
+func (c LSIFStoreSymbolsFuncCall) Results() []interface{} {
+	return []interface{}{c.Result0, c.Result1, c.Result2}
 }
 
 // MockReferencePager is a mock implementation of the ReferencePager

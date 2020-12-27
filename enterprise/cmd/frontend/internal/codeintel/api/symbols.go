@@ -50,10 +50,10 @@ func (api *CodeIntelAPI) Symbols(ctx context.Context, prefix string, uploadID, l
 
 func resolveSymbolsWithDump(dump store.Dump, symbols []lsifstore.Symbol) []ResolvedSymbol {
 	var resolvedSymbols []ResolvedSymbol
-	for _, pkg := range symbols {
+	for _, symbol := range symbols {
 		resolvedSymbols = append(resolvedSymbols, ResolvedSymbol{
-			Dump:    dump,
-			Symbol: pkg,
+			Dump:   dump,
+			Symbol: symbol,
 		})
 	}
 	return resolvedSymbols

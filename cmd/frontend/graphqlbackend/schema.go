@@ -5741,6 +5741,11 @@ interface TreeEntry {
         """
         toolName: String
     ): TreeEntryLSIFData
+
+    """
+    TODO(sqs)
+    """
+    expSymbols: ExpSymbolConnection
 }
 
 """
@@ -6163,6 +6168,11 @@ type GitBlob implements TreeEntry & File2 {
         """
         toolName: String
     ): GitBlobLSIFData
+
+    """
+    TODO(sqs)
+    """
+    expSymbols: ExpSymbolConnection
 }
 
 """
@@ -6205,9 +6215,14 @@ type ExpSymbol {
     hover: Hover
 
     """
-    The location where this symbol is defined.
+    The locations where this symbol is defined.
     """
-    location: Location!
+    definitions: LocationConnection!
+
+    """
+    The locations where this symbol is referenced.
+    """
+    references: LocationConnection!
 
     """
     The URL to this symbol (using the input revision specifier, which may not be immutable).

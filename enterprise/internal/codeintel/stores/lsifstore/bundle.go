@@ -446,8 +446,8 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
 	}
 
-	// TODO(sqs): collect symbols here
-	uniqueSymbols := map[SymbolInformationData]struct{}{}
+	var symbols []Symbol
+
 	for _, path := range paths {
 		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
 		if err != nil {
@@ -457,35 +457,38 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 			return nil, 0, nil
 		}
 
-		for _, symbolInformationData := range documentData.SymbolInformation {
-			uniqueSymbols[symbolInformationData] = struct{}{}
+		for rangeID, r := range documentData.Ranges {
+			// Check if is definition.
+			if id
+
+			// TODO(sqs): are these monikers ones that are defined? or referenced? or both?
+			for _, monikerID := range r.MonikerIDs {
+				moniker, exists := documentData.Monikers[monikerID]
+				if !exists {
+					log15.Warn("malformed bundle: unknown moniker", "bundleID", bundleID, "path", path, "id", monikerID)
+					continue
+				}
+
+				if moniker.Kind != "export" {
+					continue
+				}
+
+				// TODO(sqs): only support 1 definition locatin
+				symbols = append(symbols, Symbol{
+					Moniker: moniker,
+					Location: Location{
+						DumpID: bundleID,
+						Path:   path,
+						Range:  newRange(r.StartLine, r.StartCharacter, r.EndLine, r.EndCharacter),
+					},
+				})
+			}
 		}
 	}
-	uniqueSymbolList := make([]SymbolInformationData, 0, len(uniqueSymbols))
-	for symbolInformationData := range uniqueSymbols {
-		uniqueSymbolList = append(uniqueSymbolList, symbolInformationData)
-	}
-	sort.Slice(uniqueSymbolList, func(i, j int) bool {
-		a := uniqueSymbolList[i]
-		b := uniqueSymbolList[j]
-		return a.Manager < b.Manager || (a.Manager == b.Manager && a.Name < b.Name) || (a.Manager == b.Manager && a.Name == b.Name && a.Version < b.Version)
-	})
 
-	totalCount := len(uniqueSymbolList)
-	symbolInformations := make([]Symbol, 0, len(uniqueSymbolList))
-	for _, symbolInformationData := range uniqueSymbolList {
-		skip--
-		if skip < 0 && len(symbolInformations) < take {
-			symbolInformations = append(symbolInformations, Symbol{
-				Scheme:  "TODO", // TODO(sqs)
-				Name:    symbolInformationData.Name,
-				Version: symbolInformationData.Version,
-				Manager: symbolInformationData.Manager,
-			})
-		}
-	}
+	// TODO(sqs): apply skip, take
 
-	return symbolInformations, totalCount, nil
+	return symbols, len(symbols), nil
 }
 
 // hover returns the hover text locations for the given range.

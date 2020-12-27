@@ -11,19 +11,24 @@ import (
 type SymbolConnectionResolver struct {
 	symbols    []resolvers.AdjustedSymbol
 	totalCount int
+
+	locationResolver *CachedLocationResolver
+	newQueryResolver newQueryResolver
 }
 
-func NewSymbolConnectionResolver(symbols []resolvers.AdjustedSymbol, totalCount int) gql.SymbolConnectionResolver {
+func NewSymbolConnectionResolver(symbols []resolvers.AdjustedSymbol, totalCount int, locationResolver *CachedLocationResolver, newQueryResolver newQueryResolver) gql.SymbolConnectionResolver {
 	return &SymbolConnectionResolver{
-		symbols:    symbols,
-		totalCount: totalCount,
+		symbols:          symbols,
+		totalCount:       totalCount,
+		locationResolver: locationResolver,
+		newQueryResolver: newQueryResolver,
 	}
 }
 
 func (r *SymbolConnectionResolver) Nodes(ctx context.Context) ([]gql.SymbolResolver, error) {
 	resolvers := make([]gql.SymbolResolver, 0, len(r.symbols))
 	for i := range r.symbols {
-		resolvers = append(resolvers, NewSymbolResolver(r.symbols[i]))
+		resolvers = append(resolvers, NewSymbolResolver(r.symbols[i], r.locationResolver, r.newQueryResolver))
 	}
 	return resolvers, nil
 }

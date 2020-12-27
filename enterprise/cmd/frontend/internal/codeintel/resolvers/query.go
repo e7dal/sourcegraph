@@ -109,6 +109,13 @@ func NewQueryResolver(
 	}
 }
 
+// TODO(sqs): hack
+func (r *queryResolver) TmpWithPath(path string) QueryResolver {
+	tmp := *r
+	tmp.path = path
+	return &tmp
+}
+
 const slowRangesRequestThreshold = time.Second
 
 // Ranges returns code intelligence for the ranges that fall within the given range of lines. These
