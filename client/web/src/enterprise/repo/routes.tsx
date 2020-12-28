@@ -18,10 +18,11 @@ export const enterpriseRepoRevisionContainerRoutes: readonly RepoRevisionContain
     ...repoRevisionContainerRoutes,
     {
         path: '/-/symbols',
+        exact: true,
         render: context => <RepositorySymbolsPage {...context} />,
     },
     {
-        path: '/-/symbols/:scheme/:identifier',
+        path: '/-/symbols/:scheme/:identifier+',
         render: (
             context: RepoRevisionContainerContext & RouteComponentProps<{ scheme: string; identifier: string }>
         ) => <RepositorySymbolPage {...context} />,

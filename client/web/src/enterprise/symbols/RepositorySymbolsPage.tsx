@@ -7,43 +7,47 @@ import { requestGraphQL } from '../../backend/graphql'
 import { BreadcrumbSetters } from '../../components/Breadcrumbs'
 import { RepoHeaderContributionsLifecycleProps } from '../../repo/RepoHeader'
 import { eventLogger } from '../../tracking/eventLogger'
-import { DepsFields, DepsResult, DepsVariables } from '../../graphql-operations'
+import {
+    RepositoryExpSymbolsFields,
+    RepositoryExpSymbolsVariables,
+    RepositoryExpSymbolsResult,
+} from '../../graphql-operations'
 import { RepoRevisionContainerContext } from '../../repo/RepoRevisionContainer'
+import { Link } from 'react-router-dom'
 
-const DepsGQLFragment = gql`
-    fragment DepsFields on GitTree {
-        lsif {
-            packages {
-                nodes {
-                    name
-                    version
-                    manager
-                }
-            }
+const RepositoryExpSymbolsGQLFragment = gql`
+    fragment RepositoryExpSymbolsFields on ExpSymbol {
+        moniker {
+            identifier
         }
+        url
     }
 `
 
-const queryRepositorySymbols = (vars: DepsVariables): Observable<DepsFields | null> =>
-    requestGraphQL<DepsResult, DepsVariables>(
+const queryRepositorySymbols = (vars: RepositoryExpSymbolsVariables): Observable<RepositoryExpSymbolsFields[] | null> =>
+    requestGraphQL<RepositoryExpSymbolsResult, RepositoryExpSymbolsVariables>(
         gql`
-            query Deps($repo: ID!, $commitID: String!, $path: String!) {
+            query RepositoryExpSymbols($repo: ID!, $commitID: String!, $path: String!) {
                 node(id: $repo) {
                     ... on Repository {
                         commit(rev: $commitID) {
                             tree(path: $path) {
-                                ...DepsFields
+                                expSymbols {
+                                    nodes {
+                                        ...RepositoryExpSymbolsFields
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-            ${DepsGQLFragment}
+            ${RepositoryExpSymbolsGQLFragment}
         `,
         vars
     ).pipe(
         map(dataOrThrowErrors),
-        map(data => data.node?.commit?.tree || null)
+        map(data => data.node?.commit?.tree?.expSymbols?.nodes || null)
     )
 
 interface Props
@@ -66,11 +70,13 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ repo, re
     )
 
     return (
-        <div>
+        <div className="container mt-3">
             {data ? (
                 <ul>
-                    {data.lsif?.packages.nodes.map((package_, index) => (
-                        <li key={index}>{JSON.stringify(package_)}</li>
+                    {data.map(symbol => (
+                        <li key={symbol.url}>
+                            <Link to={symbol.url}>{symbol.moniker.identifier}</Link>
+                        </li>
                     ))}
                 </ul>
             ) : (

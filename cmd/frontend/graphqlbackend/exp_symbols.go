@@ -2,6 +2,8 @@ package graphqlbackend
 
 import (
 	"context"
+	"net/url"
+	"strings"
 
 	"github.com/sourcegraph/sourcegraph/cmd/frontend/graphqlbackend/graphqlutil"
 )
@@ -23,7 +25,7 @@ func (r *GitTreeEntryResolver) ExpSymbols(ctx context.Context) (*ExpSymbolConnec
 
 	expSymbols := make([]*ExpSymbol, len(symbols))
 	for i, symbol := range symbols {
-		expSymbols[i] = &ExpSymbol{sym: symbol}
+		expSymbols[i] = &ExpSymbol{sym: symbol, tree: r}
 	}
 	return (*ExpSymbolConnection)(&expSymbols), nil
 }
@@ -35,7 +37,8 @@ func (c ExpSymbolConnection) TotalCount() int32               { return int32(len
 func (c ExpSymbolConnection) PageInfo() *graphqlutil.PageInfo { return graphqlutil.HasNextPage(false) }
 
 type ExpSymbol struct {
-	sym SymbolResolver
+	sym  SymbolResolver
+	tree *GitTreeEntryResolver
 }
 
 func (r *ExpSymbol) Moniker() MonikerResolver { return r.sym.Moniker() }
@@ -52,9 +55,22 @@ func (r *ExpSymbol) Hover(ctx context.Context) (HoverResolver, error) {
 	return r.sym.Hover(ctx)
 }
 
-func (r *ExpSymbol) URL(ctx context.Context) (string, error) {
-	// TODO(sqs): un-hardcode
-	return "/github.com/hashicorp/errwrap@v1.0.0/-/symbols/gomod/github.com/hashicorp/errwrap:Wrapper", nil
+func (r *ExpSymbol) url(prefix string) string {
+	return prefix + "/-/symbols/" + url.PathEscape(r.sym.Moniker().Scheme()) + "/" + strings.Replace(url.PathEscape(r.sym.Moniker().Identifier()), "%2F", "/", -1)
 }
 
-func (r *ExpSymbol) CanonicalURL() (string, error) { return "TODO(sqs)", nil }
+func (r *ExpSymbol) URL(ctx context.Context) (string, error) {
+	prefix, err := r.tree.commit.repoRevURL()
+	if err != nil {
+		return "", err
+	}
+	return r.url(prefix), nil
+}
+
+func (r *ExpSymbol) CanonicalURL() (string, error) {
+	prefix, err := r.tree.commit.canonicalRepoRevURL()
+	if err != nil {
+		return "", err
+	}
+	return r.url(prefix), nil
+}
