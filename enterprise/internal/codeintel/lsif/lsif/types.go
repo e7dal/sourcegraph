@@ -40,6 +40,7 @@ func (d Range) SetDefinitionResultID(id int) Range {
 		DefinitionResultID: id,
 		ReferenceResultID:  d.ReferenceResultID,
 		HoverResultID:      d.HoverResultID,
+		Tag:                d.Tag,
 	}
 }
 
@@ -52,6 +53,7 @@ func (d Range) SetReferenceResultID(id int) Range {
 		DefinitionResultID: d.DefinitionResultID,
 		ReferenceResultID:  id,
 		HoverResultID:      d.HoverResultID,
+		Tag:                d.Tag,
 	}
 }
 
@@ -64,10 +66,9 @@ func (d Range) SetHoverResultID(id int) Range {
 		DefinitionResultID: d.DefinitionResultID,
 		ReferenceResultID:  d.ReferenceResultID,
 		HoverResultID:      id,
+		Tag:                d.Tag,
 	}
 }
-
-func (d Range) HasTag() bool { return d.Tag.Type != "" }
 
 type ResultSet struct {
 	DefinitionResultID int

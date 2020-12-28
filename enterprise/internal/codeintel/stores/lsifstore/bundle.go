@@ -2,7 +2,9 @@ package lsifstore
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"sort"
 	"strings"
 
@@ -398,6 +400,9 @@ func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip,
 		if !exists {
 			return nil, 0, nil
 		}
+
+		b, _ := json.Marshal(documentData.Symbols)
+		fmt.Printf("Doc symbols: %s\n", b)
 
 		for _, packageInformationData := range documentData.PackageInformation {
 			uniquePackages[packageInformationData] = struct{}{}
