@@ -215,8 +215,9 @@ func (s *Store) readMonikerLocations(ctx context.Context, bundleID int, tableNam
 	return scanMonikerLocations(s.Store.Query(
 		ctx,
 		sqlf.Sprintf(
-			`SELECT scheme, identifier, data FROM "`+tableName+`" WHERE dump_id = %s LIMIT %d OFFSET %d`,
+			`SELECT scheme, identifier, data FROM "`+tableName+`" WHERE dump_id = %s AND (identifier LIKE %s) LIMIT %d OFFSET %d`,
 			bundleID,
+			"%:%", // TODO(sqs): hack, omit "local" monikers from lsif-node with
 			take,
 			skip,
 		),

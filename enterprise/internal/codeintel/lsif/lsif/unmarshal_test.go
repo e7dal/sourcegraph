@@ -101,7 +101,7 @@ func TestUnmarshalDocument(t *testing.T) {
 }
 
 func TestUnmarshalRange(t *testing.T) {
-	r, err := unmarshalRange([]byte(`{"id": "04", "type": "vertex", "label": "range", "start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}}`))
+	r, err := unmarshalRange([]byte(`{"id": "04", "type": "vertex", "label": "range", "start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}, "tag": {"type": "definition", "text": "foo", "kind": 11, "fullRange": {"start": {"line": 1, "character": 0}, "end": {"line": 3, "character": 7}}, "detail": "bar"}}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling range data: %s", err)
 	}
@@ -114,6 +114,13 @@ func TestUnmarshalRange(t *testing.T) {
 		DefinitionResultID: 0,
 		ReferenceResultID:  0,
 		HoverResultID:      0,
+		Tag: SymbolTag{
+			Type:      "definition",
+			Text:      "foo",
+			Kind:      11,
+			FullRange: RangeData{StartLine: 1, StartCharacter: 0, EndLine: 3, EndCharacter: 7},
+			Detail:    "bar",
+		},
 	}
 	if diff := cmp.Diff(expectedRange, r, datastructures.Comparers...); diff != "" {
 		t.Errorf("unexpected range (-want +got):\n%s", diff)
@@ -210,5 +217,20 @@ func TestUnmarshalDiagnosticResult(t *testing.T) {
 	}
 	if diff := cmp.Diff(expectedDiagnosticResult, diagnosticResult); diff != "" {
 		t.Errorf("unexpected diagnostic result (-want +got):\n%s", diff)
+	}
+}
+
+func TestUnmarshalDocumentSymbolResult(t *testing.T) {
+	documentSymbolResult, err := unmarshalDocumentSymbolResult([]byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": 12}]}, {"id": 8}]}`))
+	if err != nil {
+		t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
+	}
+
+	expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
+		{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
+		{ID: 8},
+	}
+	if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
+		t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
 	}
 }

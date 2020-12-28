@@ -116,13 +116,14 @@ func unmarshalEdgeFast(line []byte) (Edge, bool) {
 }
 
 var vertexUnmarshalers = map[string]func(line []byte) (interface{}, error){
-	"metaData":           unmarshalMetaData,
-	"document":           unmarshalDocument,
-	"range":              unmarshalRange,
-	"hoverResult":        unmarshalHover,
-	"moniker":            unmarshalMoniker,
-	"packageInformation": unmarshalPackageInformation,
-	"diagnosticResult":   unmarshalDiagnosticResult,
+	"metaData":             unmarshalMetaData,
+	"document":             unmarshalDocument,
+	"range":                unmarshalRange,
+	"hoverResult":          unmarshalHover,
+	"moniker":              unmarshalMoniker,
+	"packageInformation":   unmarshalPackageInformation,
+	"diagnosticResult":     unmarshalDiagnosticResult,
+	"documentSymbolResult": unmarshalDocumentSymbolResult,
 }
 
 func unmarshalMetaData(line []byte) (interface{}, error) {
@@ -156,9 +157,20 @@ func unmarshalRange(line []byte) (interface{}, error) {
 		Line      int `json:"line"`
 		Character int `json:"character"`
 	}
-	var payload struct {
+	type _range struct {
 		Start _position `json:"start"`
 		End   _position `json:"end"`
+	}
+	type _documentSymbolTag struct {
+		Type      string `json:"type"`
+		Text      string `json:"text"`
+		Kind      int    `json:"kind"`
+		FullRange _range `json:"fullRange"`
+		Detail    string `json:"detail"`
+	}
+	var payload struct {
+		_range
+		Tag _documentSymbolTag `json:"tag"`
 	}
 	if err := unmarshaller.Unmarshal(line, &payload); err != nil {
 		return nil, err
@@ -169,6 +181,18 @@ func unmarshalRange(line []byte) (interface{}, error) {
 		StartCharacter: payload.Start.Character,
 		EndLine:        payload.End.Line,
 		EndCharacter:   payload.End.Character,
+		Tag: SymbolTag{
+			Type: payload.Tag.Type,
+			Text: payload.Tag.Text,
+			Kind: payload.Tag.Kind,
+			FullRange: RangeData{
+				StartLine:      payload.Tag.FullRange.Start.Line,
+				StartCharacter: payload.Tag.FullRange.Start.Character,
+				EndLine:        payload.Tag.FullRange.End.Line,
+				EndCharacter:   payload.Tag.FullRange.End.Character,
+			},
+			Detail: payload.Tag.Detail,
+		},
 	}, nil
 }
 
@@ -316,6 +340,46 @@ func unmarshalDiagnosticResult(line []byte) (interface{}, error) {
 	}
 
 	return diagnostics, nil
+}
+
+func unmarshalDocumentSymbolResult(line []byte) (interface{}, error) {
+	// TODO(sqs): support "store the information in a document symbol result as literals" in
+	// https://microsoft.github.io/language-server-protocol/specifications/lsif/0.5.0/specification/#documentSymbol.
+	type _rangeBasedDocumentSymbol struct {
+		ID       int                         `json:"id"`
+		Children []_rangeBasedDocumentSymbol `json:"children"`
+	}
+	type _result struct {
+		_rangeBasedDocumentSymbol
+	}
+	var payload struct {
+		Results []_result `json:"result"`
+	}
+	if err := unmarshaller.Unmarshal(line, &payload); err != nil {
+		return nil, err
+	}
+
+	var toRangeBasedDocumentSymbol func(item _rangeBasedDocumentSymbol) RangeBasedDocumentSymbol
+	toRangeBasedDocumentSymbol = func(item _rangeBasedDocumentSymbol) RangeBasedDocumentSymbol {
+		var children []RangeBasedDocumentSymbol
+		if len(item.Children) > 0 {
+			children = make([]RangeBasedDocumentSymbol, len(item.Children))
+		}
+		for i, child := range item.Children {
+			children[i] = toRangeBasedDocumentSymbol(child)
+		}
+		return RangeBasedDocumentSymbol{
+			ID:       item.ID,
+			Children: children,
+		}
+	}
+
+	results := make([]RangeBasedDocumentSymbol, len(payload.Results))
+	for i, result := range payload.Results {
+		results[i] = toRangeBasedDocumentSymbol(result._rangeBasedDocumentSymbol)
+	}
+
+	return results, nil
 }
 
 type StringOrInt string

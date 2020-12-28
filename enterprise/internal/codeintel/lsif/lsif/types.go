@@ -27,6 +27,8 @@ type Range struct {
 	DefinitionResultID int
 	ReferenceResultID  int
 	HoverResultID      int
+
+	Tag SymbolTag
 }
 
 func (d Range) SetDefinitionResultID(id int) Range {
@@ -64,6 +66,8 @@ func (d Range) SetHoverResultID(id int) Range {
 		HoverResultID:      id,
 	}
 }
+
+func (d Range) HasTag() bool { return d.Tag.Type != "" }
 
 type ResultSet struct {
 	DefinitionResultID int
@@ -122,6 +126,26 @@ type Diagnostic struct {
 	Code           string
 	Message        string
 	Source         string
+	StartLine      int
+	StartCharacter int
+	EndLine        int
+	EndCharacter   int
+}
+
+type RangeBasedDocumentSymbol struct {
+	ID       int
+	Children []RangeBasedDocumentSymbol
+}
+
+type SymbolTag struct {
+	Type      string
+	Text      string
+	Kind      int
+	FullRange RangeData
+	Detail    string
+}
+
+type RangeData struct {
 	StartLine      int
 	StartCharacter int
 	EndLine        int

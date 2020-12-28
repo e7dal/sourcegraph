@@ -123,7 +123,7 @@ func (r *QueryResolver) Packages(ctx context.Context, args *gql.LSIFPackagesArgs
 }
 
 func (r *QueryResolver) Symbols(ctx context.Context, args *gql.LSIFSymbolsArgs) (gql.SymbolConnectionResolver, error) {
-	limit := derefInt32(args.First, DefaultReferencesPageSize)
+	limit := derefInt32(args.First, DefaultReferencesPageSize*10 /* TODO(sqs) */)
 	if limit <= 0 {
 		return nil, ErrIllegalLimit
 	}
