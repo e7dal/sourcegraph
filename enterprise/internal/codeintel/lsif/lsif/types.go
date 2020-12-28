@@ -138,16 +138,12 @@ type RangeBasedDocumentSymbol struct {
 }
 
 type SymbolTag struct {
-	Type      string
-	Text      string
-	Kind      int
-	FullRange RangeData
-	Detail    string
-}
-
-type RangeData struct {
-	StartLine      int
-	StartCharacter int
-	EndLine        int
-	EndCharacter   int
+	Type                    string
+	Text                    string
+	Kind                    int
+	FullRangeStartLine      int
+	FullRangeStartCharacter int
+	FullRangeEndLine        int
+	FullRangeEndCharacter   int
+	Detail                  string
 }

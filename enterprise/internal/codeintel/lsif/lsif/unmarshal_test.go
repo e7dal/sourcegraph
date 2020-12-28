@@ -75,7 +75,7 @@ func TestUnmarshalEdgeNumericIDs(t *testing.T) {
 }
 
 func TestUnmarshalMetaData(t *testing.T) {
-	metadata, err := unmarshalMetaData([]byte(`{"id": "01", "type": "vertex", "label": "metaData", "version": "0.4.3", "projectRoot": "file:///test"}`))
+	metadata, err := unmarshalMetaData(nil, []byte(`{"id": "01", "type": "vertex", "label": "metaData", "version": "0.4.3", "projectRoot": "file:///test"}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling meta data: %s", err)
 	}
@@ -90,7 +90,7 @@ func TestUnmarshalMetaData(t *testing.T) {
 }
 
 func TestUnmarshalDocument(t *testing.T) {
-	uri, err := unmarshalDocument([]byte(`{"id": "02", "type": "vertex", "label": "document", "uri": "file:///test/root/foo.go"}`))
+	uri, err := unmarshalDocument(nil, []byte(`{"id": "02", "type": "vertex", "label": "document", "uri": "file:///test/root/foo.go"}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling document data: %s", err)
 	}
@@ -101,7 +101,7 @@ func TestUnmarshalDocument(t *testing.T) {
 }
 
 func TestUnmarshalRange(t *testing.T) {
-	r, err := unmarshalRange([]byte(`{"id": "04", "type": "vertex", "label": "range", "start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}, "tag": {"type": "definition", "text": "foo", "kind": 11, "fullRange": {"start": {"line": 1, "character": 0}, "end": {"line": 3, "character": 7}}, "detail": "bar"}}`))
+	r, err := unmarshalRange(nil, []byte(`{"id": "04", "type": "vertex", "label": "range", "start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}, "tag": {"type": "definition", "text": "foo", "kind": 11, "fullRange": {"start": {"line": 1, "character": 0}, "end": {"line": 3, "character": 7}}, "detail": "bar"}}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling range data: %s", err)
 	}
@@ -115,11 +115,14 @@ func TestUnmarshalRange(t *testing.T) {
 		ReferenceResultID:  0,
 		HoverResultID:      0,
 		Tag: SymbolTag{
-			Type:      "definition",
-			Text:      "foo",
-			Kind:      11,
-			FullRange: RangeData{StartLine: 1, StartCharacter: 0, EndLine: 3, EndCharacter: 7},
-			Detail:    "bar",
+			Type:                    "definition",
+			Text:                    "foo",
+			Kind:                    11,
+			FullRangeStartLine:      1,
+			FullRangeStartCharacter: 0,
+			FullRangeEndLine:        3,
+			FullRangeEndCharacter:   7,
+			Detail:                  "bar",
 		},
 	}
 	if diff := cmp.Diff(expectedRange, r, datastructures.Comparers...); diff != "" {
@@ -154,7 +157,7 @@ func TestUnmarshalHover(t *testing.T) {
 		name := fmt.Sprintf("contents=%s", testCase.contents)
 
 		t.Run(name, func(t *testing.T) {
-			hover, err := unmarshalHover([]byte(fmt.Sprintf(`{"id": "16", "type": "vertex", "label": "hoverResult", "result": {"contents": %s}}`, testCase.contents)))
+			hover, err := unmarshalHover(nil, []byte(fmt.Sprintf(`{"id": "16", "type": "vertex", "label": "hoverResult", "result": {"contents": %s}}`, testCase.contents)))
 			if err != nil {
 				t.Fatalf("unexpected error unmarshalling hover data: %s", err)
 			}
@@ -167,7 +170,7 @@ func TestUnmarshalHover(t *testing.T) {
 }
 
 func TestUnmarshalMoniker(t *testing.T) {
-	moniker, err := unmarshalMoniker([]byte(`{"id": "18", "type": "vertex", "label": "moniker", "kind": "import", "scheme": "scheme A", "identifier": "ident A"}`))
+	moniker, err := unmarshalMoniker(nil, []byte(`{"id": "18", "type": "vertex", "label": "moniker", "kind": "import", "scheme": "scheme A", "identifier": "ident A"}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling moniker data: %s", err)
 	}
@@ -183,7 +186,7 @@ func TestUnmarshalMoniker(t *testing.T) {
 }
 
 func TestUnmarshalPackageInformation(t *testing.T) {
-	packageInformation, err := unmarshalPackageInformation([]byte(`{"id": "22", "type": "vertex", "label": "packageInformation", "name": "pkg A", "version": "v0.1.0"}`))
+	packageInformation, err := unmarshalPackageInformation(nil, []byte(`{"id": "22", "type": "vertex", "label": "packageInformation", "name": "pkg A", "version": "v0.1.0"}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling package information data: %s", err)
 	}
@@ -198,7 +201,7 @@ func TestUnmarshalPackageInformation(t *testing.T) {
 }
 
 func TestUnmarshalDiagnosticResult(t *testing.T) {
-	diagnosticResult, err := unmarshalDiagnosticResult([]byte(`{"id": 18, "type": "vertex", "label": "diagnosticResult", "result": [{"severity": 1, "code": 2322, "source": "eslint", "message": "Type '10' is not assignable to type 'string'.", "range": {"start": {"line": 1, "character": 5}, "end": {"line": 1, "character": 6}}}]}`))
+	diagnosticResult, err := unmarshalDiagnosticResult(nil, []byte(`{"id": 18, "type": "vertex", "label": "diagnosticResult", "result": [{"severity": 1, "code": 2322, "source": "eslint", "message": "Type '10' is not assignable to type 'string'.", "range": {"start": {"line": 1, "character": 5}, "end": {"line": 1, "character": 6}}}]}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling diagnostic result data: %s", err)
 	}
@@ -221,7 +224,8 @@ func TestUnmarshalDiagnosticResult(t *testing.T) {
 }
 
 func TestUnmarshalDocumentSymbolResult(t *testing.T) {
-	documentSymbolResult, err := unmarshalDocumentSymbolResult([]byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": 12}]}, {"id": 8}]}`))
+	interner := NewInterner()
+	documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": "12"}]}, {"id": 8}]}`))
 	if err != nil {
 		t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
 	}

@@ -138,6 +138,9 @@ func TestCorrelate(t *testing.T) {
 				},
 			},
 		},
+		DocumentSymbolResults: map[int][]lsif.RangeBasedDocumentSymbol{
+			51: {{ID: 7}, {ID: 8, Children: []lsif.RangeBasedDocumentSymbol{{ID: 9}}}},
+		},
 		NextData: map[int]int{
 			9:  10,
 			10: 11,
@@ -159,6 +162,7 @@ func TestCorrelate(t *testing.T) {
 		Diagnostics: datastructures.DefaultIDSetMapWith(map[int]*datastructures.IDSet{
 			2: datastructures.IDSetWith(49),
 		}),
+		DocumentSymbols: datastructures.NewDefaultIDSetMap(), // TODO(sqs): can we remove this field from the struct definition?
 	}
 
 	if diff := cmp.Diff(expectedState, state, datastructures.Comparers...); diff != "" {
@@ -191,6 +195,7 @@ func TestCorrelateMetaDataRoot(t *testing.T) {
 		MonikerData:            map[int]lsif.Moniker{},
 		PackageInformationData: map[int]lsif.PackageInformation{},
 		DiagnosticResults:      map[int][]lsif.Diagnostic{},
+		DocumentSymbolResults:  map[int][]lsif.RangeBasedDocumentSymbol{},
 		NextData:               map[int]int{},
 		ImportedMonikers:       datastructures.NewIDSet(),
 		ExportedMonikers:       datastructures.NewIDSet(),
@@ -199,6 +204,7 @@ func TestCorrelateMetaDataRoot(t *testing.T) {
 		Contains:               datastructures.NewDefaultIDSetMap(),
 		Monikers:               datastructures.NewDefaultIDSetMap(),
 		Diagnostics:            datastructures.NewDefaultIDSetMap(),
+		DocumentSymbols:        datastructures.NewDefaultIDSetMap(),
 	}
 
 	if diff := cmp.Diff(expectedState, state, datastructures.Comparers...); diff != "" {
@@ -231,6 +237,7 @@ func TestCorrelateMetaDataRootX(t *testing.T) {
 		MonikerData:            map[int]lsif.Moniker{},
 		PackageInformationData: map[int]lsif.PackageInformation{},
 		DiagnosticResults:      map[int][]lsif.Diagnostic{},
+		DocumentSymbolResults:  map[int][]lsif.RangeBasedDocumentSymbol{},
 		NextData:               map[int]int{},
 		ImportedMonikers:       datastructures.NewIDSet(),
 		ExportedMonikers:       datastructures.NewIDSet(),
@@ -239,6 +246,7 @@ func TestCorrelateMetaDataRootX(t *testing.T) {
 		Contains:               datastructures.NewDefaultIDSetMap(),
 		Monikers:               datastructures.NewDefaultIDSetMap(),
 		Diagnostics:            datastructures.NewDefaultIDSetMap(),
+		DocumentSymbols:        datastructures.NewDefaultIDSetMap(),
 	}
 
 	if diff := cmp.Diff(expectedState, state, datastructures.Comparers...); diff != "" {

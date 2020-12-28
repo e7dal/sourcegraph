@@ -110,6 +110,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 		Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 		PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 		Diagnostics:        make([]lsifstore.DiagnosticData, 0, state.Diagnostics.SetLen(documentID)),
+		Symbols:            make(map[lsifstore.ID]lsifstore.DocumentSymbolData, state.DocumentSymbols.SetLen(documentID)),
 	}
 
 	state.Contains.SetEach(documentID, func(rangeID int) {
@@ -166,6 +167,36 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 				EndLine:        diagnostic.EndLine,
 				EndCharacter:   diagnostic.EndCharacter,
 			})
+		}
+	})
+
+	state.DocumentSymbols.SetEach(documentID, func(documentSymbolID int) {
+		var serializeDocumentSymbol func(documentSymbol lsif.RangeBasedDocumentSymbol)
+		serializeDocumentSymbol = func(documentSymbol lsif.RangeBasedDocumentSymbol) {
+			rangeID := documentSymbol.ID
+			rangeData := state.RangeData[rangeID]
+			data := lsifstore.DocumentSymbolData{
+				Type:                    rangeData.Tag.Type,
+				Text:                    rangeData.Tag.Text,
+				Kind:                    rangeData.Tag.Kind,
+				FullRangeStartLine:      rangeData.Tag.FullRangeStartLine,
+				FullRangeStartCharacter: rangeData.Tag.FullRangeStartCharacter,
+				FullRangeEndLine:        rangeData.Tag.FullRangeEndLine,
+				FullRangeEndCharacter:   rangeData.Tag.FullRangeEndCharacter,
+				Detail:                  rangeData.Tag.Detail,
+			}
+
+			for _, child := range documentSymbol.Children {
+				data.Children = append(data.Children, toID(child.ID))
+
+				serializeDocumentSymbol(child)
+			}
+
+			document.Symbols[toID(rangeID)] = data
+		}
+		for _, documentSymbol := range state.DocumentSymbolResults[documentSymbolID] {
+			// TODO(sqs): handle inline document symbol data
+			serializeDocumentSymbol(documentSymbol)
 		}
 	})
 

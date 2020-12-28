@@ -16,6 +16,7 @@ type DocumentData struct {
 	Monikers           map[ID]MonikerData
 	PackageInformation map[ID]PackageInformationData
 	Diagnostics        []DiagnosticData
+	Symbols            map[ID]DocumentSymbolData
 }
 
 // RangeData represents a range vertex within an index. It contains the same relevant
@@ -64,6 +65,18 @@ type DiagnosticData struct {
 	StartCharacter int // 0-indexed, inclusive
 	EndLine        int // 0-indexed, inclusive
 	EndCharacter   int // 0-indexed, inclusive
+}
+
+type DocumentSymbolData struct {
+	Type                    string
+	Text                    string
+	Kind                    int
+	FullRangeStartLine      int // 0-indexed, inclusive
+	FullRangeStartCharacter int // 0-indexed, inclusive
+	FullRangeEndLine        int // 0-indexed, inclusive
+	FullRangeEndCharacter   int // 0-indexed, inclusive
+	Detail                  string
+	Children                []ID
 }
 
 // ResultChunkData represents a row of the resultChunk table. Each row is a subset

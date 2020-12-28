@@ -102,16 +102,17 @@ func correlateElement(state *wrappedState, element lsif.Element) error {
 }
 
 var vertexHandlers = map[string]func(state *wrappedState, element lsif.Element) error{
-	"metaData":           correlateMetaData,
-	"document":           correlateDocument,
-	"range":              correlateRange,
-	"resultSet":          correlateResultSet,
-	"definitionResult":   correlateDefinitionResult,
-	"referenceResult":    correlateReferenceResult,
-	"hoverResult":        correlateHoverResult,
-	"moniker":            correlateMoniker,
-	"packageInformation": correlatePackageInformation,
-	"diagnosticResult":   correlateDiagnosticResult,
+	"metaData":             correlateMetaData,
+	"document":             correlateDocument,
+	"range":                correlateRange,
+	"resultSet":            correlateResultSet,
+	"definitionResult":     correlateDefinitionResult,
+	"referenceResult":      correlateReferenceResult,
+	"hoverResult":          correlateHoverResult,
+	"moniker":              correlateMoniker,
+	"packageInformation":   correlatePackageInformation,
+	"diagnosticResult":     correlateDiagnosticResult,
+	"documentSymbolResult": correlateDocumentSymbolResult,
 }
 
 // correlateElement maps a single vertex element into the correlation state.
@@ -131,16 +132,17 @@ func correlateVertex(state *wrappedState, element lsif.Element) error {
 }
 
 var edgeHandlers = map[string]func(state *wrappedState, id int, edge lsif.Edge) error{
-	"contains":                correlateContainsEdge,
-	"next":                    correlateNextEdge,
-	"item":                    correlateItemEdge,
-	"textDocument/definition": correlateTextDocumentDefinitionEdge,
-	"textDocument/references": correlateTextDocumentReferencesEdge,
-	"textDocument/hover":      correlateTextDocumentHoverEdge,
-	"moniker":                 correlateMonikerEdge,
-	"nextMoniker":             correlateNextMonikerEdge,
-	"packageInformation":      correlatePackageInformationEdge,
-	"textDocument/diagnostic": correlateDiagnosticEdge,
+	"contains":                    correlateContainsEdge,
+	"next":                        correlateNextEdge,
+	"item":                        correlateItemEdge,
+	"textDocument/definition":     correlateTextDocumentDefinitionEdge,
+	"textDocument/references":     correlateTextDocumentReferencesEdge,
+	"textDocument/hover":          correlateTextDocumentHoverEdge,
+	"moniker":                     correlateMonikerEdge,
+	"nextMoniker":                 correlateNextMonikerEdge,
+	"packageInformation":          correlatePackageInformationEdge,
+	"textDocument/diagnostic":     correlateDiagnosticEdge,
+	"textDocument/documentSymbol": correlateTextDocumentDocumentSymbolEdge,
 }
 
 // correlateElement maps a single edge element into the correlation state.
@@ -268,6 +270,17 @@ func correlateDiagnosticResult(state *wrappedState, element lsif.Element) error 
 	}
 
 	state.DiagnosticResults[element.ID] = payload
+	return nil
+}
+
+func correlateDocumentSymbolResult(state *wrappedState, element lsif.Element) error {
+	// TODO(sqs): support inline document symbols
+	payload, ok := element.Payload.([]lsif.RangeBasedDocumentSymbol)
+	if !ok {
+		return ErrUnexpectedPayload
+	}
+
+	state.DocumentSymbolResults[element.ID] = payload
 	return nil
 }
 
@@ -446,5 +459,18 @@ func correlateDiagnosticEdge(state *wrappedState, id int, edge lsif.Edge) error 
 	}
 
 	state.Diagnostics.SetAdd(edge.OutV, edge.InV)
+	return nil
+}
+
+func correlateTextDocumentDocumentSymbolEdge(state *wrappedState, id int, edge lsif.Edge) error {
+	if _, ok := state.DocumentData[edge.OutV]; !ok {
+		return malformedDump(id, edge.OutV, "document")
+	}
+
+	if _, ok := state.DocumentSymbolResults[edge.InV]; !ok {
+		return malformedDump(id, edge.InV, "documentSymbolResult")
+	}
+
+	state.DocumentSymbols.SetAdd(edge.OutV, edge.InV)
 	return nil
 }

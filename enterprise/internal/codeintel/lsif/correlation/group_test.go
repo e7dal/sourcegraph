@@ -28,6 +28,7 @@ func TestGroupBundleData(t *testing.T) {
 				EndCharacter:       4,
 				DefinitionResultID: 3001,
 				ReferenceResultID:  0,
+				Tag:                lsif.SymbolTag{Type: "definition", Text: "foo"},
 			},
 			2002: {
 				StartLine:          2,
@@ -219,6 +220,11 @@ func TestGroupBundleData(t *testing.T) {
 				},
 			},
 		},
+		DocumentSymbolResults: map[int][]lsif.RangeBasedDocumentSymbol{
+			1001: {
+				{ID: 2001},
+			},
+		},
 		ImportedMonikers: datastructures.IDSetWith(4001),
 		ExportedMonikers: datastructures.IDSetWith(4003),
 		Contains: datastructures.DefaultIDSetMapWith(map[int]*datastructures.IDSet{
@@ -233,6 +239,9 @@ func TestGroupBundleData(t *testing.T) {
 		Diagnostics: datastructures.DefaultIDSetMapWith(map[int]*datastructures.IDSet{
 			1001: datastructures.IDSetWith(1001, 1002),
 			1002: datastructures.IDSetWith(1003),
+		}),
+		DocumentSymbols: datastructures.DefaultIDSetMapWith(map[int]*datastructures.IDSet{
+			1001: datastructures.IDSetWith(1001),
 		}),
 	}
 
@@ -371,6 +380,12 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   24,
 				},
 			},
+			Symbols: map[lsifstore.ID]lsifstore.DocumentSymbolData{
+				"2001": {
+					Type: "definition",
+					Text: "foo",
+				},
+			},
 		},
 		"bar.go": {
 			Ranges: map[lsifstore.ID]lsifstore.RangeData{
@@ -430,6 +445,7 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   44,
 				},
 			},
+			Symbols: map[lsifstore.ID]lsifstore.DocumentSymbolData{},
 		},
 		"baz.go": {
 			Ranges: map[lsifstore.ID]lsifstore.RangeData{
@@ -468,6 +484,7 @@ func TestGroupBundleData(t *testing.T) {
 			Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 			PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 			Diagnostics:        []lsifstore.DiagnosticData{},
+			Symbols:            map[lsifstore.ID]lsifstore.DocumentSymbolData{},
 		},
 	}
 	if diff := cmp.Diff(expectedDocumentData, documents, datastructures.Comparers...); diff != "" {

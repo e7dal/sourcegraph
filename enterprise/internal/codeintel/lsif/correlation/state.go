@@ -18,6 +18,7 @@ type State struct {
 	MonikerData            map[int]lsif.Moniker
 	PackageInformationData map[int]lsif.PackageInformation
 	DiagnosticResults      map[int][]lsif.Diagnostic
+	DocumentSymbolResults  map[int][]lsif.RangeBasedDocumentSymbol
 	NextData               map[int]int                     // maps range/result sets related via next edges
 	ImportedMonikers       *datastructures.IDSet           // moniker ids that have kind "import"
 	ExportedMonikers       *datastructures.IDSet           // moniker ids that have kind "export"
@@ -26,6 +27,7 @@ type State struct {
 	Monikers               *datastructures.DefaultIDSetMap // maps items to their monikers
 	Contains               *datastructures.DefaultIDSetMap // maps ranges to containing documents
 	Diagnostics            *datastructures.DefaultIDSetMap // maps diagnostics to their documents
+	DocumentSymbols        *datastructures.DefaultIDSetMap // maps document symbols to their documents
 }
 
 // newState create a new State with zero-valued map fields.
@@ -40,6 +42,7 @@ func newState() *State {
 		MonikerData:            map[int]lsif.Moniker{},
 		PackageInformationData: map[int]lsif.PackageInformation{},
 		DiagnosticResults:      map[int][]lsif.Diagnostic{},
+		DocumentSymbolResults:  map[int][]lsif.RangeBasedDocumentSymbol{},
 		NextData:               map[int]int{},
 		ImportedMonikers:       datastructures.NewIDSet(),
 		ExportedMonikers:       datastructures.NewIDSet(),
@@ -48,5 +51,6 @@ func newState() *State {
 		Monikers:               datastructures.NewDefaultIDSetMap(),
 		Contains:               datastructures.NewDefaultIDSetMap(),
 		Diagnostics:            datastructures.NewDefaultIDSetMap(),
+		DocumentSymbols:        datastructures.NewDefaultIDSetMap(),
 	}
 }
