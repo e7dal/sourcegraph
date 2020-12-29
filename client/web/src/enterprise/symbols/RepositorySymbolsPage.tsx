@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react'
+import H from 'history'
 import { Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { dataOrThrowErrors, gql } from '../../../../shared/src/graphql/graphql'
@@ -14,6 +15,8 @@ import {
 } from '../../graphql-operations'
 import { RepoRevisionContainerContext } from '../../repo/RepoRevisionContainer'
 import { Link } from 'react-router-dom'
+import { ExpSymbolDetailGQLFragment, SymbolDetail } from './SymbolDetail'
+import { SettingsCascadeProps } from '../../../../shared/src/settings/settings'
 
 const RepositoryExpSymbolsGQLFragment = gql`
     fragment RepositoryExpSymbolsFields on ExpSymbol {
@@ -22,7 +25,13 @@ const RepositoryExpSymbolsGQLFragment = gql`
             identifier
         }
         url
+        children {
+            text
+            url
+        }
+        ...ExpSymbolDetailFields
     }
+    ${ExpSymbolDetailGQLFragment}
 `
 
 const queryRepositorySymbols = (vars: RepositoryExpSymbolsVariables): Observable<RepositoryExpSymbolsFields[] | null> =>
@@ -54,9 +63,18 @@ const queryRepositorySymbols = (vars: RepositoryExpSymbolsVariables): Observable
 interface Props
     extends Pick<RepoRevisionContainerContext, 'repo' | 'resolvedRev'>,
         RepoHeaderContributionsLifecycleProps,
-        BreadcrumbSetters {}
+        BreadcrumbSetters,
+        SettingsCascadeProps {
+    history: H.History
+    location: H.Location
+}
 
-export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ repo, resolvedRev, useBreadcrumb }) => {
+export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({
+    repo,
+    resolvedRev,
+    useBreadcrumb,
+    ...props
+}) => {
     useEffect(() => {
         eventLogger.logViewEvent('RepositorySymbols')
     }, [])
@@ -70,19 +88,34 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ repo, re
         ])
     )
 
-    return (
-        <div className="container mt-3">
-            {data ? (
-                <ul>
-                    {data.map(symbol => (
-                        <li key={symbol.url}>
-                            <Link to={symbol.url}>{symbol.text}</Link>
-                        </li>
-                    ))}
-                </ul>
-            ) : (
-                'Loading...'
-            )}
-        </div>
+    return data ? (
+        <>
+            <ul className="sticky-top flex-column list-unstyled p-3" style={{ flex: '0 0 auto', overflow: 'auto' }}>
+                {data.map(symbol => (
+                    <li key={symbol.url} className="pb-1">
+                        <Link to={symbol.url}>{symbol.text}</Link>
+                        {symbol.children.length > 0 && (
+                            <ul className="list-unstyled pl-3">
+                                {symbol.children.map(childSymbol => (
+                                    <li key={childSymbol.url}>
+                                        <Link to={childSymbol.url}>{childSymbol.text}</Link>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </li>
+                ))}
+            </ul>
+            <div style={{ overflow: 'auto' }}>
+                {data.map(symbol => (
+                    <section key={symbol.url} className="my-5">
+                        <SymbolDetail {...props} symbol={symbol} />
+                        <div className="pb-4" />
+                    </section>
+                ))}
+            </div>
+        </>
+    ) : (
+        <p>Loading...</p>
     )
 }

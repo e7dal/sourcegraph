@@ -6237,6 +6237,8 @@ type ExpSymbol {
     The canonical URL to this symbol (using an immutable revision specifier).
     """
     canonicalURL: String!
+
+    children: [ExpSymbol!]!
 }
 
 type Moniker {

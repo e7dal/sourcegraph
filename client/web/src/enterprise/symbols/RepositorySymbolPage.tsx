@@ -11,45 +11,7 @@ import { ExpSymbolFields, RepositoryExpSymbolResult, RepositoryExpSymbolVariable
 import { RepoRevisionContainerContext } from '../../repo/RepoRevisionContainer'
 import { RouteComponentProps } from 'react-router'
 import { SettingsCascadeProps } from '../../../../shared/src/settings/settings'
-import { SymbolDetail } from './SymbolDetail'
-
-const ExpSymbolGQLFragment = gql`
-    fragment ExpSymbolFields on ExpSymbol {
-        moniker {
-            kind
-            scheme
-            identifier
-        }
-        hover {
-            markdown {
-                text
-            }
-        }
-        references {
-            nodes {
-                range {
-                    start {
-                        line
-                        character
-                    }
-                    end {
-                        line
-                        character
-                    }
-                }
-                resource {
-                    path
-                    commit {
-                        oid
-                    }
-                    repository {
-                        name
-                    }
-                }
-            }
-        }
-    }
-`
+import { ExpSymbolDetailGQLFragment, SymbolDetail } from './SymbolDetail'
 
 const queryRepositorySymbol = (
     vars: RepositoryExpSymbolVariables & { scheme: string; identifier: string }
@@ -63,7 +25,7 @@ const queryRepositorySymbol = (
                             tree(path: "") {
                                 expSymbols {
                                     nodes {
-                                        ...ExpSymbolFields
+                                        ...ExpSymbolDetailFields
                                     }
                                 }
                             }
@@ -71,7 +33,7 @@ const queryRepositorySymbol = (
                     }
                 }
             }
-            ${ExpSymbolGQLFragment}
+            ${ExpSymbolDetailGQLFragment}
         `,
         vars
     ).pipe(

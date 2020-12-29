@@ -2,6 +2,7 @@ package graphqlbackend
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 	"strings"
 
@@ -58,7 +59,14 @@ func (r *ExpSymbol) Hover(ctx context.Context) (HoverResolver, error) {
 }
 
 func (r *ExpSymbol) url(prefix string) string {
-	return prefix + "/-/symbols/" + url.PathEscape(r.sym.Moniker().Scheme()) + "/" + strings.Replace(url.PathEscape(r.sym.Moniker().Identifier()), "%2F", "/", -1)
+	if r.sym.Moniker().Scheme() != "" {
+		return prefix + "/-/symbols/" + url.PathEscape(r.sym.Moniker().Scheme()) + "/" + strings.Replace(url.PathEscape(r.sym.Moniker().Identifier()), "%2F", "/", -1)
+	}
+	path, line, end := r.sym.Location()
+	tree := *r.tree
+	tree.stat = fileInfo{path: path}
+	u, _ := tree.urlPath(prefix)
+	return u + fmt.Sprintf("#L%d-%d", line+1, end+1)
 }
 
 func (r *ExpSymbol) URL(ctx context.Context) (string, error) {
@@ -75,4 +83,15 @@ func (r *ExpSymbol) CanonicalURL() (string, error) {
 		return "", err
 	}
 	return r.url(prefix), nil
+}
+
+func (r *ExpSymbol) Children() []*ExpSymbol {
+	children := make([]*ExpSymbol, len(r.sym.Children()))
+	for i, childSymbol := range r.sym.Children() {
+		children[i] = &ExpSymbol{
+			sym:  childSymbol,
+			tree: r.tree,
+		}
+	}
+	return children
 }

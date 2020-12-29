@@ -313,6 +313,8 @@ type SymbolResolver interface {
 	Definitions(ctx context.Context) (LocationConnectionResolver, error)
 	References(ctx context.Context) (LocationConnectionResolver, error)
 	Hover(context.Context) (HoverResolver, error)
+	Children() []SymbolResolver
+	Location() (path string, line, end int)
 }
 
 type MonikerResolver interface {

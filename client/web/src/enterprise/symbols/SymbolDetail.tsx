@@ -2,7 +2,7 @@ import React from 'react'
 import H from 'history'
 import { of } from 'rxjs'
 import { gql } from '../../../../shared/src/graphql/graphql'
-import { ExpSymbolFields } from '../../graphql-operations'
+import { ExpSymbolDetailFields } from '../../graphql-operations'
 import { Markdown } from '../../../../shared/src/components/Markdown'
 import SourceRepositoryIcon from 'mdi-react/SourceRepositoryIcon'
 import { fetchHighlightedFileLineRanges } from '../../repo/backend'
@@ -13,8 +13,8 @@ import { makeRepoURI } from '../../../../shared/src/util/url'
 import { renderMarkdown } from '../../../../shared/src/util/markdown'
 import { Link } from 'react-router-dom'
 
-export const ExpSymbolGQLFragment = gql`
-    fragment ExpSymbolFields on ExpSymbol {
+export const ExpSymbolDetailGQLFragment = gql`
+    fragment ExpSymbolDetailFields on ExpSymbol {
         moniker {
             kind
             scheme
@@ -52,7 +52,7 @@ export const ExpSymbolGQLFragment = gql`
 `
 
 interface Props extends SettingsCascadeProps {
-    symbol: ExpSymbolFields
+    symbol: ExpSymbolDetailFields
 
     history: H.History
     location: H.Location
@@ -65,7 +65,11 @@ export const SymbolDetail: React.FunctionComponent<Props> = ({ symbol, history, 
 
     return (
         <div>
-            <style>{'.markdown pre code { font-size: 18px; } .markdown pre { margin-bottom: 0; }'}</style>
+            <style>
+                {
+                    '.markdown pre code { font-size: 18px; line-height: 26px; } .markdown pre { margin-bottom: 0; white-space: pre-wrap; }'
+                }
+            </style>
             <section id="doc">
                 {hoverSig && (
                     <Markdown dangerousInnerHTML={renderMarkdown(hoverSig)} history={history} className="mt-3 mx-3" />
@@ -90,32 +94,34 @@ export const SymbolDetail: React.FunctionComponent<Props> = ({ symbol, history, 
                     />
                 )}
             </section>
-            <section id="refs" className="mt-5">
-                <h2 className="mt-3 mx-3 mb-0 h4">Examples</h2>
-                <style>
-                    {
-                        'td.line { display: none; } .code-excerpt .code { padding-left: 0.25rem !important; } .result-container__header { display: none; } .result-container { border: solid 1px var(--border-color) !important; border-width: 1px !important; margin: 1rem; }'
-                    }
-                </style>
-                <FileLocations
-                    location={location}
-                    locations={of(
-                        symbol.references.nodes.slice(1, 4).map<Location>(reference => ({
-                            uri: makeRepoURI({
-                                repoName: reference.resource.repository.name,
-                                commitID: reference.resource.commit.oid,
-                                filePath: reference.resource.path,
-                            }),
-                            range: reference.range!,
-                        }))
-                    )}
-                    icon={SourceRepositoryIcon}
-                    isLightTheme={false /* TODO(sqs) */}
-                    fetchHighlightedFileLineRanges={fetchHighlightedFileLineRanges}
-                    settingsCascade={settingsCascade}
-                    versionContext={undefined /* TODO(sqs) */}
-                />
-            </section>
+            {symbol.references.nodes.length > 1 && (
+                <section id="refs" className="mt-2">
+                    <h2 className="mt-0 mx-3 mb-0 h4">Examples</h2>
+                    <style>
+                        {
+                            'td.line { display: none; } .code-excerpt .code { padding-left: 0.25rem !important; } .result-container__header { display: none; } .result-container { border: solid 1px var(--border-color) !important; border-width: 1px !important; margin: 1rem; }'
+                        }
+                    </style>
+                    <FileLocations
+                        location={location}
+                        locations={of(
+                            symbol.references.nodes.slice(1, 4).map<Location>(reference => ({
+                                uri: makeRepoURI({
+                                    repoName: reference.resource.repository.name,
+                                    commitID: reference.resource.commit.oid,
+                                    filePath: reference.resource.path,
+                                }),
+                                range: reference.range!,
+                            }))
+                        )}
+                        icon={SourceRepositoryIcon}
+                        isLightTheme={false /* TODO(sqs) */}
+                        fetchHighlightedFileLineRanges={fetchHighlightedFileLineRanges}
+                        settingsCascade={settingsCascade}
+                        versionContext={undefined /* TODO(sqs) */}
+                    />
+                </section>
+            )}
         </div>
     )
 }

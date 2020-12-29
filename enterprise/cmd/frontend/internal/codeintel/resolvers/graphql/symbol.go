@@ -65,3 +65,19 @@ func (r *SymbolResolver) Hover(ctx context.Context) (gql.HoverResolver, error) {
 		Character: int32(r.symbol.Location.Range.Start.Character),
 	})
 }
+
+func (r *SymbolResolver) Children() []gql.SymbolResolver {
+	children := make([]gql.SymbolResolver, len(r.symbol.Children))
+	for i, childSymbol := range r.symbol.Children {
+		children[i] = &SymbolResolver{
+			symbol:           resolvers.AdjustedSymbol{Symbol: childSymbol},
+			locationResolver: r.locationResolver,
+			newQueryResolver: r.newQueryResolver,
+		}
+	}
+	return children
+}
+
+func (r *SymbolResolver) Location() (path string, line, end int) {
+	return r.symbol.Location.Path, r.symbol.FullLocation.Range.Start.Line, r.symbol.FullLocation.Range.End.Line
+}
