@@ -225,16 +225,34 @@ func TestUnmarshalDiagnosticResult(t *testing.T) {
 
 func TestUnmarshalDocumentSymbolResult(t *testing.T) {
 	interner := NewInterner()
-	documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": "12"}]}, {"id": 8}]}`))
-	if err != nil {
-		t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
-	}
 
-	expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
-		{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
-		{ID: 8},
-	}
-	if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
-		t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
-	}
+	t.Run("range-based", func(t *testing.T) {
+		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": "12"}]}, {"id": 8}]}`))
+		if err != nil {
+			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
+		}
+
+		expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
+			{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
+			{ID: 8},
+		}
+		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
+			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
+		}
+	})
+
+	t.Run("inline", func(t *testing.T) {
+		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"name": "foo"]}`))
+		if err != nil {
+			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
+		}
+
+		expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
+			{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
+			{ID: 8},
+		}
+		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
+			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
+		}
+	})
 }

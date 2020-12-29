@@ -274,8 +274,8 @@ func correlateDiagnosticResult(state *wrappedState, element lsif.Element) error 
 }
 
 func correlateDocumentSymbolResult(state *wrappedState, element lsif.Element) error {
-	// TODO(sqs): support inline document symbols
-	payload, ok := element.Payload.([]lsif.RangeBasedDocumentSymbol)
+	// TODO(sqs): support range-based document symbols
+	payload, ok := element.Payload.(lsif.SymbolResultList)
 	if !ok {
 		return ErrUnexpectedPayload
 	}

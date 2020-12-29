@@ -1,5 +1,7 @@
 package lsif
 
+import protocol "github.com/sourcegraph/lsif-protocol"
+
 type Element struct {
 	ID      int
 	Type    string
@@ -131,6 +133,12 @@ type Diagnostic struct {
 	StartCharacter int
 	EndLine        int
 	EndCharacter   int
+}
+
+type SymbolResultList struct {
+	// At most 1 can be non-zero.
+	RangeBased []RangeBasedDocumentSymbol
+	Inline     []protocol.DocumentSymbol
 }
 
 type RangeBasedDocumentSymbol struct {

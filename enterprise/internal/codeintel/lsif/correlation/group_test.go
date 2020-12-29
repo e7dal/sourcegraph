@@ -220,9 +220,9 @@ func TestGroupBundleData(t *testing.T) {
 				},
 			},
 		},
-		DocumentSymbolResults: map[int][]lsif.RangeBasedDocumentSymbol{
+		DocumentSymbolResults: map[int]lsif.SymbolResultList{
 			1001: {
-				{ID: 2001},
+				RangeBased: []lsif.RangeBasedDocumentSymbol{{ID: 2001}},
 			},
 		},
 		ImportedMonikers: datastructures.IDSetWith(4001),
@@ -380,10 +380,10 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   24,
 				},
 			},
-			Symbols: map[lsifstore.ID]lsifstore.DocumentSymbolData{
-				"2001": {
+			Symbols: []lsifstore.DocumentSymbolData{
+				{
 					Type: "definition",
-					Text: "foo",
+					Name: "foo",
 				},
 			},
 		},
@@ -445,7 +445,7 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   44,
 				},
 			},
-			Symbols: map[lsifstore.ID]lsifstore.DocumentSymbolData{},
+			Symbols: []lsifstore.DocumentSymbolData{},
 		},
 		"baz.go": {
 			Ranges: map[lsifstore.ID]lsifstore.RangeData{
@@ -484,7 +484,7 @@ func TestGroupBundleData(t *testing.T) {
 			Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 			PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 			Diagnostics:        []lsifstore.DiagnosticData{},
-			Symbols:            map[lsifstore.ID]lsifstore.DocumentSymbolData{},
+			Symbols:            []lsifstore.DocumentSymbolData{},
 		},
 	}
 	if diff := cmp.Diff(expectedDocumentData, documents, datastructures.Comparers...); diff != "" {

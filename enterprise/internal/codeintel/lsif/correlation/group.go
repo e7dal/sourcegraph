@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/pkg/errors"
+	protocol "github.com/sourcegraph/lsif-protocol"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/bloomfilter"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/datastructures"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/lsif"
@@ -110,7 +111,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 		Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 		PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 		Diagnostics:        make([]lsifstore.DiagnosticData, 0, state.Diagnostics.SetLen(documentID)),
-		Symbols:            make(map[lsifstore.ID]lsifstore.DocumentSymbolData, state.DocumentSymbols.SetLen(documentID)),
+		Symbols:            make([]lsifstore.DocumentSymbolData, 0, state.DocumentSymbols.SetLen(documentID)),
 	}
 
 	state.Contains.SetEach(documentID, func(rangeID int) {
@@ -171,32 +172,63 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 	})
 
 	state.DocumentSymbols.SetEach(documentID, func(documentSymbolID int) {
-		var serializeDocumentSymbol func(documentSymbol lsif.RangeBasedDocumentSymbol)
-		serializeDocumentSymbol = func(documentSymbol lsif.RangeBasedDocumentSymbol) {
+		var fromRangeBased func(documentSymbol lsif.RangeBasedDocumentSymbol) lsifstore.DocumentSymbolData
+		fromRangeBased = func(documentSymbol lsif.RangeBasedDocumentSymbol) lsifstore.DocumentSymbolData {
 			rangeID := documentSymbol.ID
 			rangeData := state.RangeData[rangeID]
+
 			data := lsifstore.DocumentSymbolData{
-				Type:                    rangeData.Tag.Type,
-				Text:                    rangeData.Tag.Text,
-				Kind:                    rangeData.Tag.Kind,
-				FullRangeStartLine:      rangeData.Tag.FullRangeStartLine,
-				FullRangeStartCharacter: rangeData.Tag.FullRangeStartCharacter,
-				FullRangeEndLine:        rangeData.Tag.FullRangeEndLine,
-				FullRangeEndCharacter:   rangeData.Tag.FullRangeEndCharacter,
-				Detail:                  rangeData.Tag.Detail,
+				Type:   rangeData.Tag.Type,
+				Name:   rangeData.Tag.Text,
+				Detail: rangeData.Tag.Detail,
+				Kind:   rangeData.Tag.Kind,
+				Range: lsifstore.Range{
+					Start: lsifstore.Position{Line: rangeData.StartLine, Character: rangeData.StartCharacter},
+					End:   lsifstore.Position{Line: rangeData.EndLine, Character: rangeData.EndCharacter},
+				},
+				FullRange: lsifstore.Range{
+					Start: lsifstore.Position{Line: rangeData.Tag.FullRangeStartLine, Character: rangeData.Tag.FullRangeStartCharacter},
+					End:   lsifstore.Position{Line: rangeData.Tag.FullRangeEndLine, Character: rangeData.Tag.FullRangeEndCharacter},
+				},
 			}
 
 			for _, child := range documentSymbol.Children {
-				data.Children = append(data.Children, toID(child.ID))
-
-				serializeDocumentSymbol(child)
+				data.Children = append(data.Children, fromRangeBased(child))
 			}
 
-			document.Symbols[toID(rangeID)] = data
+			return data
 		}
-		for _, documentSymbol := range state.DocumentSymbolResults[documentSymbolID] {
-			// TODO(sqs): handle inline document symbol data
-			serializeDocumentSymbol(documentSymbol)
+		for _, documentSymbol := range state.DocumentSymbolResults[documentSymbolID].RangeBased {
+			data := fromRangeBased(documentSymbol)
+			document.Symbols = append(document.Symbols, data)
+		}
+
+		var fromInline func(documentSymbol protocol.DocumentSymbol) lsifstore.DocumentSymbolData
+		fromInline = func(documentSymbol protocol.DocumentSymbol) lsifstore.DocumentSymbolData {
+			data := lsifstore.DocumentSymbolData{
+				Type:   "definition", // TODO(sqs): can we make this assumption?
+				Name:   documentSymbol.Name,
+				Detail: documentSymbol.Detail,
+				Kind:   int(documentSymbol.Kind),
+				Range: lsifstore.Range{
+					Start: lsifstore.Position{Line: documentSymbol.SelectionRange.Start.Line, Character: documentSymbol.SelectionRange.Start.Character},
+					End:   lsifstore.Position{Line: documentSymbol.SelectionRange.End.Line, Character: documentSymbol.SelectionRange.End.Character},
+				},
+				FullRange: lsifstore.Range{
+					Start: lsifstore.Position{Line: documentSymbol.Range.Start.Line, Character: documentSymbol.Range.Start.Character},
+					End:   lsifstore.Position{Line: documentSymbol.Range.End.Line, Character: documentSymbol.Range.End.Character},
+				},
+			}
+
+			for _, child := range documentSymbol.Children {
+				data.Children = append(data.Children, fromInline(child))
+			}
+
+			return data
+		}
+		for _, documentSymbol := range state.DocumentSymbolResults[documentSymbolID].Inline {
+			data := fromInline(documentSymbol)
+			document.Symbols = append(document.Symbols, data)
 		}
 	})
 

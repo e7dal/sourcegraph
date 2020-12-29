@@ -4,7 +4,7 @@
 {"id": "04", "type": "vertex", "label": "range", "start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}}
 {"id": "05", "type": "vertex", "label": "range", "start": {"line": 2, "character": 3}, "end": {"line": 4, "character": 5}}
 {"id": "06", "type": "vertex", "label": "range", "start": {"line": 3, "character": 4}, "end": {"line": 5, "character": 6}}
-{"id": "07", "type": "vertex", "label": "range", "start": {"line": 4, "character": 5}, "end": {"line": 6, "character": 7}}
+{"id": "07", "type": "vertex", "label": "range", "start": {"line": 4, "character": 5}, "end": {"line": 6, "character": 7}, "tag": {"type": "definition", "text": "foo", "fullRange": {"start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}}}}
 {"id": "08", "type": "vertex", "label": "range", "start": {"line": 5, "character": 6}, "end": {"line": 7, "character": 8}}
 {"id": "09", "type": "vertex", "label": "range", "start": {"line": 6, "character": 7}, "end": {"line": 8, "character": 9}}
 {"id": "10", "type": "vertex", "label": "resultSet"}
@@ -50,3 +50,5 @@
 {"id": "50", "type": "edge", "label": "textDocument/diagnostic", "outV": "02", "inV": "49"}
 {"id": "51", "type": "vertex", "label": "documentSymbolResult", "result": [{"id": "07"}, {"id": "08", "children": [{"id": "09"}]}]}
 {"id": "52", "type": "edge", "label": "textDocument/documentSymbol", "outV": "02", "inV": "51"}
+{"id": "53", "type": "vertex", "label": "documentSymbolResult", "result": [{"name": "bar", "range": {"start": {"line": 1, "character": 2}, "end": {"line": 3, "character": 4}}}]}
+{"id": "54", "type": "edge", "label": "textDocument/documentSymbol", "outV": "03", "inV": "53"}

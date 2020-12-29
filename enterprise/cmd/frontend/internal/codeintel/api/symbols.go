@@ -2,6 +2,7 @@ package api
 
 import (
 	"context"
+	"strings"
 
 	"github.com/inconshreveable/log15"
 	"github.com/opentracing/opentracing-go/log"
@@ -17,8 +18,9 @@ type ResolvedSymbol struct {
 }
 
 // Symbols returns the symbols defined in the given path prefix.
-func (api *CodeIntelAPI) Symbols(ctx context.Context, uploadID, limit, offset int) (_ []ResolvedSymbol, _ int, err error) {
+func (api *CodeIntelAPI) Symbols(ctx context.Context, prefix string, uploadID, limit, offset int) (_ []ResolvedSymbol, _ int, err error) {
 	ctx, endObservation := api.operations.symbols.With(ctx, &err, observation.Args{LogFields: []log.Field{
+		log.String("prefix", prefix),
 		log.Int("uploadID", uploadID),
 		log.Int("limit", limit),
 		log.Int("offset", offset),
@@ -33,7 +35,8 @@ func (api *CodeIntelAPI) Symbols(ctx context.Context, uploadID, limit, offset in
 		return nil, 0, ErrMissingDump
 	}
 
-	symbols, totalCount, err := api.lsifStore.Symbols(ctx, dump.ID, offset, limit)
+	pathInBundle := strings.TrimPrefix(prefix, dump.Root)
+	symbols, totalCount, err := api.lsifStore.Symbols(ctx, dump.ID, pathInBundle, offset, limit)
 	if err != nil {
 		if err == lsifstore.ErrNotFound {
 			log15.Warn("Bundle does not exist")

@@ -497,12 +497,20 @@ func (r *queryResolver) Symbols(ctx context.Context, limit int) (_ []AdjustedSym
 	totalCount := 0
 	var allSymbols []codeintelapi.ResolvedSymbol
 	for i := range r.uploads {
+		adjustedPath, ok, err := r.positionAdjuster.AdjustPath(ctx, r.uploads[i].Commit, r.path, false)
+		if err != nil {
+			return nil, 0, err
+		}
+		if !ok {
+			continue
+		}
+
 		l := limit - len(allSymbols)
 		if l < 0 {
 			l = 0
 		}
 
-		symbols, count, err := r.codeIntelAPI.Symbols(ctx, r.uploads[i].ID, l, 0)
+		symbols, count, err := r.codeIntelAPI.Symbols(ctx, adjustedPath, r.uploads[i].ID, l, 0)
 		if err != nil {
 			return nil, 0, err
 		}

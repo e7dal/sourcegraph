@@ -355,6 +355,59 @@ func TestDatabasePackageInformation(t *testing.T) {
 	}
 }
 
+func TestDatabaseSymbols(t *testing.T) {
+	if testing.Short() {
+		t.Skip()
+	}
+	dbtesting.SetupGlobalTestDB(t)
+	populateTestStore(t)
+	store := NewStore(dbconn.Global, &observation.TestContext)
+
+	if actualList, totalCount, err := store.Symbols(context.Background(), testBundleID, "protocol/protocol.go", 0, 1000); err != nil {
+		t.Fatalf("unexpected error %s", err)
+	} else {
+		// Filter down the actual list to a single symbol that we test against.
+		const testMonikerIdentifier = "github.com/sourcegraph/lsif-go/protocol:ToolInfo"
+		var actual *Symbol
+		for _, symbol := range actualList {
+			if symbol.Moniker.Identifier == testMonikerIdentifier {
+				actual = &symbol
+				break
+			}
+		}
+		if actual == nil {
+			t.Fatalf("symbol with moniker identifier %q not found in result", testMonikerIdentifier)
+		}
+
+		expected := Symbol{
+			Moniker: MonikerData{
+				Kind:       "export",
+				Scheme:     "gomod",
+				Identifier: testMonikerIdentifier,
+			},
+			Locations: []Location{
+				{
+					DumpID: testBundleID,
+					Path:   "protocol/protocol.go",
+					Range: Range{
+						Start: Position{Line: 66, Character: 5},
+						End:   Position{Line: 66, Character: 13},
+					},
+				},
+			},
+			Text: "foo",
+		}
+		if diff := cmp.Diff(expected, *actual); diff != "" {
+			t.Errorf("unexpected symbols (-want +got):\n%s", diff)
+		}
+
+		expectedTotalCount := 100
+		if totalCount != expectedTotalCount {
+			t.Errorf("unexpected symbol result total count. want=%d have=%d", expectedTotalCount, totalCount)
+		}
+	}
+}
+
 func populateTestStore(t testing.TB) *Store {
 	contents, err := ioutil.ReadFile("./testdata/lsif-go@ad3507cb.sql")
 	if err != nil {

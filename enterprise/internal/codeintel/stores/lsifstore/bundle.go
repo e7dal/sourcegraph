@@ -2,9 +2,7 @@ package lsifstore
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
-	"fmt"
 	"sort"
 	"strings"
 
@@ -401,9 +399,6 @@ func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip,
 			return nil, 0, nil
 		}
 
-		b, _ := json.Marshal(documentData.Symbols)
-		fmt.Printf("Doc symbols: %s\n", b)
-
 		for _, packageInformationData := range documentData.PackageInformation {
 			uniquePackages[packageInformationData] = struct{}{}
 		}
@@ -435,11 +430,12 @@ func (s *Store) Packages(ctx context.Context, bundleID int, prefix string, skip,
 	return packageInformations, totalCount, nil
 }
 
-// Symbols returns all symbols defined in the workspace. This method also returns the size
+// Symbols returns all symbols defined in the given prefix. This method also returns the size
 // of the complete result set to aid in pagination (along with skip and take).
-func (s *Store) Symbols(ctx context.Context, bundleID int, skip, take int) (_ []Symbol, _ int, err error) {
+func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, take int) (_ []Symbol, _ int, err error) {
 	ctx, endObservation := s.operations.symbols.With(ctx, &err, observation.Args{LogFields: []log.Field{
 		log.Int("bundleID", bundleID),
+		log.String("prefix", prefix),
 		log.Int("skip", skip),
 		log.Int("take", take),
 	}})
@@ -454,6 +450,18 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, skip, take int) (_ []
 
 	var symbols []Symbol
 	for _, row := range rows {
+		matchesPrefix := false
+		for _, loc := range row.Locations {
+			// TODO(sqs): more precise has-prefix taking into account slashes etc
+			if strings.HasPrefix(loc.URI, prefix) {
+				matchesPrefix = true
+				break
+			}
+		}
+		if !matchesPrefix {
+			continue
+		}
+
 		symbol := Symbol{
 			Moniker: MonikerData{
 				Kind:       "export",
@@ -473,6 +481,24 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, skip, take int) (_ []
 
 		symbols = append(symbols, symbol)
 	}
+
+	////////////////////////////////////////
+
+	// paths, err := s.getPathsWithPrefix(ctx, bundleID, "")
+	// if err != nil {
+	// 	return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
+	// }
+
+	// for _, path := range paths {
+	// 	documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
+	// 	if err != nil {
+	// 		return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
+	// 	}
+	// 	if !exists {
+	// 		return nil, 0, nil
+	// 	}
+	// 	documentData.Symbols
+	// }
 
 	return symbols, fakeTotal, nil
 }

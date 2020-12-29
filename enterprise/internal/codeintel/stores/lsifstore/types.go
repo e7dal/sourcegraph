@@ -16,7 +16,7 @@ type DocumentData struct {
 	Monikers           map[ID]MonikerData
 	PackageInformation map[ID]PackageInformationData
 	Diagnostics        []DiagnosticData
-	Symbols            map[ID]DocumentSymbolData
+	Symbols            []DocumentSymbolData
 }
 
 // RangeData represents a range vertex within an index. It contains the same relevant
@@ -68,15 +68,14 @@ type DiagnosticData struct {
 }
 
 type DocumentSymbolData struct {
-	Type                    string
-	Text                    string
-	Kind                    int
-	FullRangeStartLine      int // 0-indexed, inclusive
-	FullRangeStartCharacter int // 0-indexed, inclusive
-	FullRangeEndLine        int // 0-indexed, inclusive
-	FullRangeEndCharacter   int // 0-indexed, inclusive
-	Detail                  string
-	Children                []ID
+	Type string
+	Name string
+	Kind int
+	// TODO(sqs): add tags
+	Range     Range
+	FullRange Range
+	Detail    string
+	Children  []DocumentSymbolData
 }
 
 // ResultChunkData represents a row of the resultChunk table. Each row is a subset
@@ -152,6 +151,13 @@ type PackageReference struct {
 type Symbol struct {
 	Moniker   MonikerData
 	Locations []Location
+
+	Type   string
+	Text   string
+	Kind   int
+	Detail string
+
+	Children []Symbol
 }
 
 // Location is an LSP-like location scoped to a dump.
