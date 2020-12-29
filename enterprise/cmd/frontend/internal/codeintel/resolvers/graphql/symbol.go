@@ -34,6 +34,7 @@ func (r *SymbolResolver) Moniker() gql.MonikerResolver {
 }
 
 func (r *SymbolResolver) Definitions(ctx context.Context) (gql.LocationConnectionResolver, error) {
+	//x
 	adjustedLocations := []resolvers.AdjustedLocation{
 		{
 			Dump:           r.symbol.Dump,
