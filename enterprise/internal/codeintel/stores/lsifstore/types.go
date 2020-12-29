@@ -81,6 +81,8 @@ type SymbolData struct {
 	FullRange Range
 
 	Children []SymbolData
+	ParentID ID
+	TopLevel ID
 }
 
 // ResultChunkData represents a row of the resultChunk table. Each row is a subset

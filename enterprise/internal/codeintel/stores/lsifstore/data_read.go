@@ -223,3 +223,31 @@ func (s *Store) readMonikerLocations(ctx context.Context, bundleID int, tableNam
 		),
 	))
 }
+
+func (s *Store) ReadSymbols(ctx context.Context, bundleID int) (_ []SymbolData, err error) {
+	ctx, endObservation := s.operations.readSymbols.With(ctx, &err, observation.Args{LogFields: []log.Field{
+		log.Int("bundleID", bundleID),
+	}})
+	defer endObservation(1, observation.Args{})
+
+	datas, err := basestore.ScanStrings(s.Store.Query(
+		ctx,
+		sqlf.Sprintf(
+			`SELECT data FROM lsif_data_symbols WHERE dump_id = %s`,
+			bundleID,
+		),
+	))
+	if err != nil {
+		return nil, err
+	}
+
+	symbols := make([]SymbolData, len(datas))
+	for i, data := range datas {
+		symbols[i], err = s.serializer.UnmarshalSymbol([]byte(data))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return symbols, nil
+}

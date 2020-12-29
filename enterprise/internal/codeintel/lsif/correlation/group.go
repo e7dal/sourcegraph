@@ -67,6 +67,7 @@ func groupBundleData(ctx context.Context, state *State, dumpID int) (*GroupedBun
 	if err != nil {
 		return nil, err
 	}
+	symbols := gatherSymbols(state, dumpID)
 
 	return &GroupedBundleDataChans{
 		Meta:              meta,
@@ -76,6 +77,7 @@ func groupBundleData(ctx context.Context, state *State, dumpID int) (*GroupedBun
 		References:        referenceRows,
 		Packages:          packages,
 		PackageReferences: packageReferences,
+		Symbols:           symbols,
 	}, nil
 }
 
@@ -192,6 +194,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 					Start: lsifstore.Position{Line: rangeData.Tag.FullRange.Start.Line, Character: rangeData.Tag.FullRange.Start.Character},
 					End:   lsifstore.Position{Line: rangeData.Tag.FullRange.End.Line, Character: rangeData.Tag.FullRange.End.Character},
 				},
+				ParentID: toID(int(documentSymbol.Parent)),
 			}
 
 			for _, child := range documentSymbol.Children {
@@ -220,6 +223,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 					Start: lsifstore.Position{Line: documentSymbol.Range.Start.Line, Character: documentSymbol.Range.Start.Character},
 					End:   lsifstore.Position{Line: documentSymbol.Range.End.Line, Character: documentSymbol.Range.End.Character},
 				},
+				ParentID: toID(int(documentSymbol.Parent)),
 			}
 
 			for _, child := range documentSymbol.Children {
@@ -448,6 +452,26 @@ func gatherPackageReferences(state *State, dumpID int) ([]lsifstore.PackageRefer
 	return packageReferences, nil
 }
 
+func gatherSymbols(state *State, dumpID int) []lsifstore.SymbolData {
+	var symbols []lsifstore.SymbolData
+
+	// TODO(sqs): just gather "package" symbols for now because all other symbols are already
+	// reachable via a document.
+	for rangeID, rng := range state.RangeData {
+		if rng.Tag != nil && rng.Tag.FullRange.Start == (protocol.Pos{}) && rng.Tag.FullRange.End == (protocol.Pos{}) {
+			symbols = append(symbols, lsifstore.SymbolData{
+				Type:     rng.Tag.Type,
+				Text:     rng.Tag.Text,
+				Detail:   rng.Tag.Detail,
+				Kind:     rng.Tag.Kind,
+				TopLevel: toID(rangeID),
+			})
+		}
+	}
+
+	return symbols
+}
+
 // CAUTION: Data is not deep copied.
 func GroupedBundleDataMapsToChans(ctx context.Context, maps *GroupedBundleDataMaps) *GroupedBundleDataChans {
 	documentChan := make(chan lsifstore.KeyedDocumentData, len(maps.Documents))
@@ -524,6 +548,7 @@ func GroupedBundleDataMapsToChans(ctx context.Context, maps *GroupedBundleDataMa
 		References:        monikerRefsChan,
 		Packages:          maps.Packages,
 		PackageReferences: maps.PackageReferences,
+		Symbols:           maps.Symbols,
 	}
 }
 
@@ -562,5 +587,6 @@ func GroupedBundleDataChansToMaps(ctx context.Context, chans *GroupedBundleDataC
 		References:        monikerRefsMap,
 		Packages:          chans.Packages,
 		PackageReferences: chans.PackageReferences,
+		Symbols:           chans.Symbols,
 	}
 }

@@ -24,7 +24,9 @@ func NewSymbolResolver(symbol resolvers.AdjustedSymbol, locationResolver *Cached
 	}
 }
 
-func (r *SymbolResolver) Text() string { return r.symbol.Text }
+func (r *SymbolResolver) Text() string {
+	return r.symbol.Text
+}
 
 func (r *SymbolResolver) Moniker() gql.MonikerResolver {
 	return NewMonikerResolver(r.symbol.Moniker)

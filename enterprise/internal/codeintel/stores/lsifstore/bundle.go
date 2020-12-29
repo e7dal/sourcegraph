@@ -444,6 +444,7 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 	const fakeTotal = 100 // TODO(sqs)
 
 	var symbols []Symbol
+	var symbolParentIDs []ID
 
 	// Read document symbols from each file in the given prefix.
 	paths, err := s.getPathsWithPrefix(ctx, bundleID, prefix)
@@ -485,6 +486,7 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 		}
 		for _, rawSymbol := range documentData.Symbols {
 			symbols = append(symbols, fromRawSymbol(rawSymbol))
+			symbolParentIDs = append(symbolParentIDs, rawSymbol.ParentID)
 		}
 	}
 
@@ -526,7 +528,45 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 		}
 	}
 
-	return symbols, fakeTotal, nil
+	// Attach parent symbols.
+	topLevelSymbols, err := s.ReadSymbols(ctx, bundleID)
+	if err != nil {
+		return nil, 0, pkgerrors.Wrap(err, "store.ReadSymbols")
+	}
+
+	var allSymbols []Symbol
+
+	topLevelSymbolsByID := make(map[ID]*Symbol, len(topLevelSymbols))
+	for _, s := range topLevelSymbols {
+		s2 := &Symbol{
+			Type:   s.Type,
+			Text:   s.Text,
+			Detail: s.Detail,
+			Kind:   s.Kind,
+		}
+		topLevelSymbolsByID[s.TopLevel] = s2
+	}
+
+	for i, symbol := range symbols {
+		parentID := symbolParentIDs[i]
+		if parentID == "" {
+			allSymbols = append(allSymbols, symbol)
+			continue
+		}
+
+		parent, ok := topLevelSymbolsByID[parentID]
+		if !ok {
+			panic("no parent found: " + parentID)
+		}
+
+		parent.Children = append(parent.Children, symbol)
+	}
+
+	for _, ts := range topLevelSymbolsByID {
+		allSymbols = append(allSymbols, *ts)
+	}
+
+	return allSymbols, fakeTotal, nil
 }
 
 // hover returns the hover text locations for the given range.
