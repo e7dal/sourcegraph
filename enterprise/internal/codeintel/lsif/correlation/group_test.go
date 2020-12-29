@@ -383,7 +383,11 @@ func TestGroupBundleData(t *testing.T) {
 			Symbols: []lsifstore.DocumentSymbolData{
 				{
 					Type: "definition",
-					Name: "foo",
+					Text: "foo",
+					Range: lsifstore.Range{
+						Start: lsifstore.Position{Line: 1, Character: 2},
+						End:   lsifstore.Position{Line: 3, Character: 4},
+					},
 				},
 			},
 		},

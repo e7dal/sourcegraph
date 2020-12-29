@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	protocol "github.com/sourcegraph/lsif-protocol"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/datastructures"
 )
 
@@ -232,9 +233,11 @@ func TestUnmarshalDocumentSymbolResult(t *testing.T) {
 			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
 		}
 
-		expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
-			{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
-			{ID: 8},
+		expectedDocumentSymbolResult := SymbolResultList{
+			RangeBased: []RangeBasedDocumentSymbol{
+				{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
+				{ID: 8},
+			},
 		}
 		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
 			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
@@ -242,14 +245,17 @@ func TestUnmarshalDocumentSymbolResult(t *testing.T) {
 	})
 
 	t.Run("inline", func(t *testing.T) {
-		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"name": "foo"]}`))
+		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"name": "foo"}]}`))
 		if err != nil {
 			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
 		}
 
-		expectedDocumentSymbolResult := []RangeBasedDocumentSymbol{
-			{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
-			{ID: 8},
+		expectedDocumentSymbolResult := SymbolResultList{
+			Inline: []protocol.DocumentSymbol{
+				{
+					Name: "foo",
+				},
+			},
 		}
 		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
 			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)

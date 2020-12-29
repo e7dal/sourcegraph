@@ -353,7 +353,6 @@ func unmarshalDocumentSymbolResult(interner *Interner, line []byte) (interface{}
 	type _result struct {
 		// union of RangeBasedDocumentSymbol and DocumentSymbol
 		ID             json.RawMessage      `json:"id"`
-		Text           string               `json:"text"`
 		Name           string               `json:"name"`
 		Detail         string               `json:"detail"`
 		Range          _range               `json:"range"`

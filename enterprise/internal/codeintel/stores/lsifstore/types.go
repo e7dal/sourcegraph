@@ -69,7 +69,7 @@ type DiagnosticData struct {
 
 type DocumentSymbolData struct {
 	Type string
-	Name string
+	Text string
 	Kind int
 	// TODO(sqs): add tags
 	Range     Range
@@ -149,13 +149,15 @@ type PackageReference struct {
 
 // Symbol TODO(sqs)
 type Symbol struct {
-	Moniker   MonikerData
-	Locations []Location
-
 	Type   string
 	Text   string
-	Kind   int
 	Detail string
+	Kind   int
+
+	Location     Location
+	FullLocation Location
+
+	Moniker MonikerData
 
 	Children []Symbol
 }

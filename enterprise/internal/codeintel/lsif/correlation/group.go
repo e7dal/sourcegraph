@@ -179,7 +179,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 
 			data := lsifstore.DocumentSymbolData{
 				Type:   rangeData.Tag.Type,
-				Name:   rangeData.Tag.Text,
+				Text:   rangeData.Tag.Text,
 				Detail: rangeData.Tag.Detail,
 				Kind:   rangeData.Tag.Kind,
 				Range: lsifstore.Range{
@@ -207,7 +207,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 		fromInline = func(documentSymbol protocol.DocumentSymbol) lsifstore.DocumentSymbolData {
 			data := lsifstore.DocumentSymbolData{
 				Type:   "definition", // TODO(sqs): can we make this assumption?
-				Name:   documentSymbol.Name,
+				Text:   documentSymbol.Name,
 				Detail: documentSymbol.Detail,
 				Kind:   int(documentSymbol.Kind),
 				Range: lsifstore.Range{

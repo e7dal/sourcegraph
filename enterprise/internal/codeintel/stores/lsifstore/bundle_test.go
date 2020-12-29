@@ -242,6 +242,8 @@ func TestDatabaseHover(t *testing.T) {
 	}
 }
 
+const testDatabasePackageInformationID = "18" // changes when lsif-go@ad3507cb.sql is regenerated
+
 func TestDatabaseMonikersByPosition(t *testing.T) {
 	if testing.Short() {
 		t.Skip()
@@ -262,7 +264,7 @@ func TestDatabaseMonikersByPosition(t *testing.T) {
 					Kind:                 "export",
 					Scheme:               "gomod",
 					Identifier:           "github.com/sourcegraph/lsif-go/protocol:NewMetaData",
-					PackageInformationID: "60",
+					PackageInformationID: testDatabasePackageInformationID,
 				},
 			},
 		}
@@ -339,7 +341,7 @@ func TestDatabasePackageInformation(t *testing.T) {
 	populateTestStore(t)
 	store := NewStore(dbconn.Global, &observation.TestContext)
 
-	if actual, exists, err := store.PackageInformation(context.Background(), testBundleID, "protocol/protocol.go", "60"); err != nil {
+	if actual, exists, err := store.PackageInformation(context.Background(), testBundleID, "protocol/protocol.go", testDatabasePackageInformationID); err != nil {
 		t.Fatalf("unexpected error %s", err)
 	} else if !exists {
 		t.Errorf("no package information")
@@ -380,22 +382,30 @@ func TestDatabaseSymbols(t *testing.T) {
 		}
 
 		expected := Symbol{
+			Type: "definition",
+			Text: "ToolInfo",
+			Kind: 11,
+			Location: Location{
+				DumpID: testBundleID,
+				Path:   "protocol/protocol.go",
+				Range: Range{
+					Start: Position{Line: 66, Character: 5},
+					End:   Position{Line: 66, Character: 13},
+				},
+			},
+			FullLocation: Location{
+				DumpID: testBundleID,
+				Path:   "protocol/protocol.go",
+				Range: Range{
+					Start: Position{Line: 66, Character: 0},
+					End:   Position{Line: 73, Character: 1},
+				},
+			},
 			Moniker: MonikerData{
 				Kind:       "export",
 				Scheme:     "gomod",
 				Identifier: testMonikerIdentifier,
 			},
-			Locations: []Location{
-				{
-					DumpID: testBundleID,
-					Path:   "protocol/protocol.go",
-					Range: Range{
-						Start: Position{Line: 66, Character: 5},
-						End:   Position{Line: 66, Character: 13},
-					},
-				},
-			},
-			Text: "foo",
 		}
 		if diff := cmp.Diff(expected, *actual); diff != "" {
 			t.Errorf("unexpected symbols (-want +got):\n%s", diff)
@@ -407,6 +417,23 @@ func TestDatabaseSymbols(t *testing.T) {
 		}
 	}
 }
+
+// TODO(sqs): steps for regenerating lsif-go@ad3507cb.sql
+//
+// NOTE: THIS WILL DELETE ALL LSIF DATA FROM YOUR LOCAL DATABASE!!!
+//
+// # FIRST: make sure the github.com/sourcegraph/lsif-go repo exists on your sourcegraph instance
+//
+// pg_dump --data-only --format plain --inserts --table 'lsif_data_*' --file lsif_backup.sql
+//
+// for table in $(psql -XAt -c "select tablename from pg_tables where schemaname='public' and tablename like 'lsif_data_%';"); do psql -c "truncate table $table"; done
+//
+// pg_dump --data-only --format plain --inserts --table 'lsif_data_*' | grep -v '^--' | grep -v '^SET' | grep -v '^SELECT' | sed 's/VALUES ([[:digit:]]\+,/VALUES (447,/g' > tmp.sql
+// mv tmp.sql enterprise/internal/codeintel/stores/lsifstore/testdata/lsif-go@ad3507cb.sql
+//
+// # RESTORE
+// # rerun the `for table` thing above, then:
+// psql -X < lsif_backup.sql
 
 func populateTestStore(t testing.TB) *Store {
 	contents, err := ioutil.ReadFile("./testdata/lsif-go@ad3507cb.sql")

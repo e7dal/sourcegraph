@@ -443,62 +443,88 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 
 	const fakeTotal = 100 // TODO(sqs)
 
-	rows, err := s.readMonikerLocations(ctx, bundleID, "definitions", skip, take)
+	var symbols []Symbol
+
+	// Read document symbols from each file in the given prefix.
+	paths, err := s.getPathsWithPrefix(ctx, bundleID, "")
 	if err != nil {
-		return nil, 0, pkgerrors.Wrap(err, "store.ReadDefinitions")
+		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
 	}
 
-	var symbols []Symbol
-	for _, row := range rows {
-		matchesPrefix := false
-		for _, loc := range row.Locations {
-			// TODO(sqs): more precise has-prefix taking into account slashes etc
-			if strings.HasPrefix(loc.URI, prefix) {
-				matchesPrefix = true
-				break
-			}
+	for _, path := range paths {
+		documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
+		if err != nil {
+			return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
 		}
-		if !matchesPrefix {
-			continue
+		if !exists {
+			return nil, 0, nil
 		}
 
-		symbol := Symbol{
-			Moniker: MonikerData{
+		var fromRawSymbol func(rawSymbol DocumentSymbolData) Symbol
+		fromRawSymbol = func(rawSymbol DocumentSymbolData) Symbol {
+			symbol := Symbol{
+				Type:   rawSymbol.Type,
+				Text:   rawSymbol.Text,
+				Detail: rawSymbol.Detail,
+				Kind:   rawSymbol.Kind,
+				Location: Location{
+					DumpID: bundleID,
+					Path:   path,
+					Range:  newRange(rawSymbol.Range.Start.Line, rawSymbol.Range.Start.Character, rawSymbol.Range.End.Line, rawSymbol.Range.End.Character),
+				},
+				FullLocation: Location{
+					DumpID: bundleID,
+					Path:   path,
+					Range:  newRange(rawSymbol.FullRange.Start.Line, rawSymbol.FullRange.Start.Character, rawSymbol.FullRange.End.Line, rawSymbol.FullRange.End.Character),
+				},
+			}
+			for _, child := range rawSymbol.Children {
+				symbol.Children = append(symbol.Children, fromRawSymbol(child))
+			}
+			return symbol
+		}
+		for _, rawSymbol := range documentData.Symbols {
+			symbols = append(symbols, fromRawSymbol(rawSymbol))
+		}
+	}
+
+	// Try to associate a moniker with each symbol.
+	{
+		rows, err := s.readMonikerLocations(ctx, bundleID, "definitions", skip, take)
+		if err != nil {
+			return nil, 0, pkgerrors.Wrap(err, "store.ReadDefinitions")
+		}
+
+		for _, row := range rows {
+			matchesPrefix := false
+			for _, loc := range row.Locations {
+				// TODO(sqs): more precise has-prefix taking into account slashes etc
+				if strings.HasPrefix(loc.URI, prefix) {
+					matchesPrefix = true
+					break
+				}
+			}
+			if !matchesPrefix {
+				continue
+			}
+
+			moniker := MonikerData{
 				Kind:       "export",
 				Scheme:     row.Scheme,
 				Identifier: row.Identifier,
-			},
-		}
+			}
 
-		symbol.Locations = make([]Location, len(row.Locations))
-		for i, loc := range row.Locations {
-			symbol.Locations[i] = Location{
-				DumpID: bundleID,
-				Path:   loc.URI,
-				Range:  newRange(loc.StartLine, loc.StartCharacter, loc.EndLine, loc.EndCharacter),
+			// Find the symbol(s) whose range is the same as this moniker's range. TODO(sqs): inefficient
+			for i := range symbols {
+				for _, loc := range row.Locations {
+					locRange := newRange(loc.StartLine, loc.StartCharacter, loc.EndLine, loc.EndCharacter)
+					if symbols[i].Location.Path == loc.URI && symbols[i].Location.Range == locRange {
+						symbols[i].Moniker = moniker
+					}
+				}
 			}
 		}
-
-		symbols = append(symbols, symbol)
 	}
-
-	////////////////////////////////////////
-
-	// paths, err := s.getPathsWithPrefix(ctx, bundleID, "")
-	// if err != nil {
-	// 	return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
-	// }
-
-	// for _, path := range paths {
-	// 	documentData, exists, err := s.getDocumentData(ctx, bundleID, path)
-	// 	if err != nil {
-	// 		return nil, 0, pkgerrors.Wrap(err, "db.getDocumentData")
-	// 	}
-	// 	if !exists {
-	// 		return nil, 0, nil
-	// 	}
-	// 	documentData.Symbols
-	// }
 
 	return symbols, fakeTotal, nil
 }

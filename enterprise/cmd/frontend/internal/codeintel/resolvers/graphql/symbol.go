@@ -32,34 +32,34 @@ func (r *SymbolResolver) Definitions(ctx context.Context) (gql.LocationConnectio
 	adjustedLocations := []resolvers.AdjustedLocation{
 		{
 			Dump:           r.symbol.Dump,
-			Path:           r.symbol.Locations[0].Path,
+			Path:           r.symbol.Location.Path,
 			AdjustedCommit: r.symbol.Dump.Commit,
-			AdjustedRange:  r.symbol.Locations[0].Range,
+			AdjustedRange:  r.symbol.Location.Range,
 		},
 	}
 	return NewLocationConnectionResolver(adjustedLocations, nil, r.locationResolver), nil
 }
 
 func (r *SymbolResolver) References(ctx context.Context) (gql.LocationConnectionResolver, error) {
-	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Locations[0].Path)
+	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Location.Path)
 	if err != nil {
 		return nil, err
 	}
 	return queryResolver.References(ctx, &gql.LSIFPagedQueryPositionArgs{
 		LSIFQueryPositionArgs: gql.LSIFQueryPositionArgs{
-			Line:      int32(r.symbol.Locations[0].Range.Start.Line),
-			Character: int32(r.symbol.Locations[0].Range.Start.Character),
+			Line:      int32(r.symbol.Location.Range.Start.Line),
+			Character: int32(r.symbol.Location.Range.Start.Character),
 		},
 	})
 }
 
 func (r *SymbolResolver) Hover(ctx context.Context) (gql.HoverResolver, error) {
-	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Locations[0].Path)
+	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Location.Path)
 	if err != nil {
 		return nil, err
 	}
 	return queryResolver.Hover(ctx, &gql.LSIFQueryPositionArgs{
-		Line:      int32(r.symbol.Locations[0].Range.Start.Line),
-		Character: int32(r.symbol.Locations[0].Range.Start.Character),
+		Line:      int32(r.symbol.Location.Range.Start.Line),
+		Character: int32(r.symbol.Location.Range.Start.Character),
 	})
 }
