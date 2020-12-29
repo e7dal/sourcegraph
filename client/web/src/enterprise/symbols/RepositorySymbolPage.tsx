@@ -7,7 +7,11 @@ import { requestGraphQL } from '../../backend/graphql'
 import { BreadcrumbSetters } from '../../components/Breadcrumbs'
 import { RepoHeaderContributionsLifecycleProps } from '../../repo/RepoHeader'
 import { eventLogger } from '../../tracking/eventLogger'
-import { ExpSymbolFields, RepositoryExpSymbolResult, RepositoryExpSymbolVariables } from '../../graphql-operations'
+import {
+    ExpSymbolDetailFields,
+    RepositoryExpSymbolResult,
+    RepositoryExpSymbolVariables,
+} from '../../graphql-operations'
 import { RepoRevisionContainerContext } from '../../repo/RepoRevisionContainer'
 import { RouteComponentProps } from 'react-router'
 import { SettingsCascadeProps } from '../../../../shared/src/settings/settings'
@@ -15,7 +19,7 @@ import { ExpSymbolDetailGQLFragment, SymbolDetail } from './SymbolDetail'
 
 const queryRepositorySymbol = (
     vars: RepositoryExpSymbolVariables & { scheme: string; identifier: string }
-): Observable<ExpSymbolFields | null> =>
+): Observable<ExpSymbolDetailFields | null> =>
     requestGraphQL<RepositoryExpSymbolResult, RepositoryExpSymbolVariables>(
         gql`
             query RepositoryExpSymbol($repo: ID!, $revision: String!) {
@@ -25,6 +29,13 @@ const queryRepositorySymbol = (
                             tree(path: "") {
                                 expSymbols {
                                     nodes {
+                                        ...ExpSymbolDetailFields
+                                        children {
+                                            ...ExpSymbolDetailFields
+                                            children {
+                                                ...ExpSymbolDetailFields
+                                            }
+                                        }
                                         ...ExpSymbolDetailFields
                                     }
                                 }
@@ -38,12 +49,27 @@ const queryRepositorySymbol = (
         vars
     ).pipe(
         map(dataOrThrowErrors),
-        map(
-            data =>
-                data.node?.commit?.tree?.expSymbols?.nodes.find(
-                    node => node.moniker.scheme === vars.scheme && node.moniker.identifier === vars.identifier
-                ) || null
-        )
+        map(data => {
+            // eslint-disable-next-line unicorn/consistent-function-scoping
+            const match = (sym: ExpSymbolDetailFields): boolean =>
+                sym.moniker.scheme === vars.scheme && sym.moniker.identifier === vars.identifier
+            for (const node of data.node?.commit?.tree?.expSymbols?.nodes || []) {
+                if (match(node)) {
+                    return node
+                }
+                for (const child of node.children) {
+                    if (match(child)) {
+                        return child
+                    }
+                    for (const childChild of child.children) {
+                        if (match(childChild)) {
+                            return childChild
+                        }
+                    }
+                }
+            }
+            return null
+        })
     )
 
 interface Props

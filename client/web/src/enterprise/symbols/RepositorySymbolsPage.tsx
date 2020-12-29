@@ -26,8 +26,10 @@ const RepositoryExpSymbolsGQLFragment = gql`
         }
         url
         children {
-            text
-            url
+            ...ExpSymbolDetailFields
+            children {
+                ...ExpSymbolDetailFields
+            }
         }
         ...ExpSymbolDetailFields
     }
@@ -99,6 +101,15 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({
                                 {symbol.children.map(childSymbol => (
                                     <li key={childSymbol.url}>
                                         <Link to={childSymbol.url}>{childSymbol.text}</Link>
+                                        {childSymbol.children.length > 0 && (
+                                            <ul className="list-unstyled pl-3">
+                                                {childSymbol.children.map(childChildSymbol => (
+                                                    <li key={childChildSymbol.url}>
+                                                        <Link to={childChildSymbol.url}>{childChildSymbol.text}</Link>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        )}
                                     </li>
                                 ))}
                             </ul>
@@ -110,7 +121,11 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({
                 {data.map(symbol => (
                     <section key={symbol.url} className="my-5">
                         <SymbolDetail {...props} symbol={symbol} />
-                        <div className="pb-4" />
+                        {symbol.children.map(childSymbol => (
+                            <SymbolDetail {...props} symbol={childSymbol} />
+                        ))}
+                        <div className="pb-5" />
+                        <div className="pb-5" />
                     </section>
                 ))}
             </div>

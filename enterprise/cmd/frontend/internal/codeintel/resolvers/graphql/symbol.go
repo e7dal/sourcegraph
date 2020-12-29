@@ -2,6 +2,7 @@ package graphql
 
 import (
 	"context"
+	"path"
 
 	gql "github.com/sourcegraph/sourcegraph/cmd/frontend/graphqlbackend"
 	"github.com/sourcegraph/sourcegraph/enterprise/cmd/frontend/internal/codeintel/resolvers"
@@ -36,7 +37,7 @@ func (r *SymbolResolver) Definitions(ctx context.Context) (gql.LocationConnectio
 	adjustedLocations := []resolvers.AdjustedLocation{
 		{
 			Dump:           r.symbol.Dump,
-			Path:           r.symbol.Location.Path,
+			Path:           path.Clean(r.symbol.Location.Path),
 			AdjustedCommit: r.symbol.Dump.Commit,
 			AdjustedRange:  r.symbol.Location.Range,
 		},
@@ -45,7 +46,7 @@ func (r *SymbolResolver) Definitions(ctx context.Context) (gql.LocationConnectio
 }
 
 func (r *SymbolResolver) References(ctx context.Context) (gql.LocationConnectionResolver, error) {
-	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Location.Path)
+	queryResolver, err := r.newQueryResolver(ctx, path.Clean(r.symbol.Location.Path))
 	if err != nil {
 		return nil, err
 	}
@@ -58,7 +59,7 @@ func (r *SymbolResolver) References(ctx context.Context) (gql.LocationConnection
 }
 
 func (r *SymbolResolver) Hover(ctx context.Context) (gql.HoverResolver, error) {
-	queryResolver, err := r.newQueryResolver(ctx, r.symbol.Location.Path)
+	queryResolver, err := r.newQueryResolver(ctx, path.Clean(r.symbol.Location.Path))
 	if err != nil {
 		return nil, err
 	}

@@ -15,6 +15,8 @@ import { Link } from 'react-router-dom'
 
 export const ExpSymbolDetailGQLFragment = gql`
     fragment ExpSymbolDetailFields on ExpSymbol {
+        text
+        url
         moniker {
             kind
             scheme

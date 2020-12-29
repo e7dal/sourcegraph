@@ -458,7 +458,7 @@ func gatherSymbols(state *State, dumpID int) []lsifstore.SymbolData {
 	// TODO(sqs): just gather "package" symbols for now because all other symbols are already
 	// reachable via a document.
 	for rangeID, rng := range state.RangeData {
-		if rng.Tag != nil && rng.Tag.FullRange.Start == (protocol.Pos{}) && rng.Tag.FullRange.End == (protocol.Pos{}) {
+		if rng.Tag != nil && rng.Tag.FullRange != nil && rng.Tag.FullRange.Start == (protocol.Pos{}) && rng.Tag.FullRange.End == (protocol.Pos{}) {
 			symbols = append(symbols, lsifstore.SymbolData{
 				Type:     rng.Tag.Type,
 				Text:     rng.Tag.Text,
