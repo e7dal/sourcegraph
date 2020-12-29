@@ -6212,6 +6212,8 @@ type ExpSymbolConnection {
 A symbol.
 """
 type ExpSymbol {
+    text: String!
+
     moniker: Moniker!
 
     hover: Hover

@@ -7,6 +7,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	protocol "github.com/sourcegraph/lsif-protocol"
+	"github.com/sourcegraph/lsif-protocol/reader"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/bloomfilter"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/datastructures"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/lsif"
@@ -28,7 +30,11 @@ func TestGroupBundleData(t *testing.T) {
 				EndCharacter:       4,
 				DefinitionResultID: 3001,
 				ReferenceResultID:  0,
-				Tag:                lsif.SymbolTag{Type: "definition", Text: "foo"},
+				Tag: &protocol.RangeSymbolTag{
+					Type:      "definition",
+					Text:      "foo",
+					FullRange: &protocol.RangeData{}, // TODO(sqs): empty
+				},
 			},
 			2002: {
 				StartLine:          2,
@@ -220,9 +226,9 @@ func TestGroupBundleData(t *testing.T) {
 				},
 			},
 		},
-		DocumentSymbolResults: map[int]lsif.SymbolResultList{
+		DocumentSymbolResults: map[int]reader.SymbolResultList{
 			1001: {
-				RangeBased: []lsif.RangeBasedDocumentSymbol{{ID: 2001}},
+				RangeBased: []protocol.RangeBasedDocumentSymbol{{ID: 2001}},
 			},
 		},
 		ImportedMonikers: datastructures.IDSetWith(4001),
@@ -380,7 +386,7 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   24,
 				},
 			},
-			Symbols: []lsifstore.DocumentSymbolData{
+			Symbols: []lsifstore.SymbolData{
 				{
 					Type: "definition",
 					Text: "foo",
@@ -449,7 +455,7 @@ func TestGroupBundleData(t *testing.T) {
 					EndCharacter:   44,
 				},
 			},
-			Symbols: []lsifstore.DocumentSymbolData{},
+			Symbols: []lsifstore.SymbolData{},
 		},
 		"baz.go": {
 			Ranges: map[lsifstore.ID]lsifstore.RangeData{
@@ -488,7 +494,7 @@ func TestGroupBundleData(t *testing.T) {
 			Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 			PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 			Diagnostics:        []lsifstore.DiagnosticData{},
-			Symbols:            []lsifstore.DocumentSymbolData{},
+			Symbols:            []lsifstore.SymbolData{},
 		},
 	}
 	if diff := cmp.Diff(expectedDocumentData, documents, datastructures.Comparers...); diff != "" {

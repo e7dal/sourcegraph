@@ -115,15 +115,15 @@ func TestUnmarshalRange(t *testing.T) {
 		DefinitionResultID: 0,
 		ReferenceResultID:  0,
 		HoverResultID:      0,
-		Tag: SymbolTag{
-			Type:                    "definition",
-			Text:                    "foo",
-			Kind:                    11,
-			FullRangeStartLine:      1,
-			FullRangeStartCharacter: 0,
-			FullRangeEndLine:        3,
-			FullRangeEndCharacter:   7,
-			Detail:                  "bar",
+		Tag: &protocol.RangeSymbolTag{
+			Type:   "definition",
+			Text:   "foo",
+			Detail: "bar",
+			Kind:   11,
+			FullRange: &protocol.RangeData{
+				Start: protocol.Pos{Line: 1, Character: 0},
+				End:   protocol.Pos{Line: 3, Character: 7},
+			},
 		},
 	}
 	if diff := cmp.Diff(expectedRange, r, datastructures.Comparers...); diff != "" {
@@ -222,43 +222,4 @@ func TestUnmarshalDiagnosticResult(t *testing.T) {
 	if diff := cmp.Diff(expectedDiagnosticResult, diagnosticResult); diff != "" {
 		t.Errorf("unexpected diagnostic result (-want +got):\n%s", diff)
 	}
-}
-
-func TestUnmarshalDocumentSymbolResult(t *testing.T) {
-	interner := NewInterner()
-
-	t.Run("range-based", func(t *testing.T) {
-		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"id": 7, "children": [{"id": "12"}]}, {"id": 8}]}`))
-		if err != nil {
-			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
-		}
-
-		expectedDocumentSymbolResult := SymbolResultList{
-			RangeBased: []RangeBasedDocumentSymbol{
-				{ID: 7, Children: []RangeBasedDocumentSymbol{{ID: 12}}},
-				{ID: 8},
-			},
-		}
-		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
-			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
-		}
-	})
-
-	t.Run("inline", func(t *testing.T) {
-		documentSymbolResult, err := unmarshalDocumentSymbolResult(interner, []byte(`{"id": 39, "type": "vertex", "label": "documentSymbolResult", "result": [{"name": "foo"}]}`))
-		if err != nil {
-			t.Fatalf("unexpected error unmarshalling document symbol result data: %s", err)
-		}
-
-		expectedDocumentSymbolResult := SymbolResultList{
-			Inline: []protocol.DocumentSymbol{
-				{
-					Name: "foo",
-				},
-			},
-		}
-		if diff := cmp.Diff(expectedDocumentSymbolResult, documentSymbolResult); diff != "" {
-			t.Errorf("unexpected document symbol result (-want +got):\n%s", diff)
-		}
-	})
 }

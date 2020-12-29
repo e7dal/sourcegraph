@@ -17,6 +17,7 @@ import { Link } from 'react-router-dom'
 
 const RepositoryExpSymbolsGQLFragment = gql`
     fragment RepositoryExpSymbolsFields on ExpSymbol {
+        text
         moniker {
             identifier
         }
@@ -75,7 +76,7 @@ export const RepositorySymbolsPage: React.FunctionComponent<Props> = ({ repo, re
                 <ul>
                     {data.map(symbol => (
                         <li key={symbol.url}>
-                            <Link to={symbol.url}>{symbol.moniker.identifier}</Link>
+                            <Link to={symbol.url}>{symbol.text}</Link>
                         </li>
                     ))}
                 </ul>

@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/inconshreveable/log15"
+	"github.com/sourcegraph/lsif-protocol/reader"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/datastructures"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/existence"
 	"github.com/sourcegraph/sourcegraph/enterprise/internal/codeintel/lsif/lsif"
@@ -275,7 +276,7 @@ func correlateDiagnosticResult(state *wrappedState, element lsif.Element) error 
 
 func correlateDocumentSymbolResult(state *wrappedState, element lsif.Element) error {
 	// TODO(sqs): support range-based document symbols
-	payload, ok := element.Payload.(lsif.SymbolResultList)
+	payload, ok := element.Payload.(reader.SymbolResultList)
 	if !ok {
 		return ErrUnexpectedPayload
 	}

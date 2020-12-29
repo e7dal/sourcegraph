@@ -41,6 +41,8 @@ type ExpSymbol struct {
 	tree *GitTreeEntryResolver
 }
 
+func (r *ExpSymbol) Text() string { return r.sym.Text() }
+
 func (r *ExpSymbol) Moniker() MonikerResolver { return r.sym.Moniker() }
 
 func (r *ExpSymbol) Definitions(ctx context.Context) (LocationConnectionResolver, error) {

@@ -446,7 +446,7 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 	var symbols []Symbol
 
 	// Read document symbols from each file in the given prefix.
-	paths, err := s.getPathsWithPrefix(ctx, bundleID, "")
+	paths, err := s.getPathsWithPrefix(ctx, bundleID, prefix)
 	if err != nil {
 		return nil, 0, pkgerrors.Wrap(err, "db.getPathsWithPrefix")
 	}
@@ -460,8 +460,8 @@ func (s *Store) Symbols(ctx context.Context, bundleID int, prefix string, skip, 
 			return nil, 0, nil
 		}
 
-		var fromRawSymbol func(rawSymbol DocumentSymbolData) Symbol
-		fromRawSymbol = func(rawSymbol DocumentSymbolData) Symbol {
+		var fromRawSymbol func(rawSymbol SymbolData) Symbol
+		fromRawSymbol = func(rawSymbol SymbolData) Symbol {
 			symbol := Symbol{
 				Type:   rawSymbol.Type,
 				Text:   rawSymbol.Text,

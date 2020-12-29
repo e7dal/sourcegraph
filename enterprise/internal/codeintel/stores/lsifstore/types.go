@@ -1,5 +1,7 @@
 package lsifstore
 
+import protocol "github.com/sourcegraph/lsif-protocol"
+
 type ID string
 
 // MetaData contains data describing the overall structure of a bundle.
@@ -16,7 +18,7 @@ type DocumentData struct {
 	Monikers           map[ID]MonikerData
 	PackageInformation map[ID]PackageInformationData
 	Diagnostics        []DiagnosticData
-	Symbols            []DocumentSymbolData
+	Symbols            []SymbolData
 }
 
 // RangeData represents a range vertex within an index. It contains the same relevant
@@ -67,15 +69,18 @@ type DiagnosticData struct {
 	EndCharacter   int // 0-indexed, inclusive
 }
 
-type DocumentSymbolData struct {
-	Type string
-	Text string
-	Kind int
-	// TODO(sqs): add tags
+type SymbolData struct {
+	Type   string
+	Text   string
+	Detail string
+	Kind   protocol.SymbolKind
+	Tags   []protocol.SymbolTag
+
+	Path      string // file path for the range and fullRange
 	Range     Range
 	FullRange Range
-	Detail    string
-	Children  []DocumentSymbolData
+
+	Children []SymbolData
 }
 
 // ResultChunkData represents a row of the resultChunk table. Each row is a subset
@@ -147,12 +152,12 @@ type PackageReference struct {
 	Filter  []byte // a bloom filter of identifiers imported by this dependent
 }
 
-// Symbol TODO(sqs)
+// Symbol TODO(sqs) move this
 type Symbol struct {
 	Type   string
 	Text   string
 	Detail string
-	Kind   int
+	Kind   protocol.SymbolKind
 
 	Location     Location
 	FullLocation Location

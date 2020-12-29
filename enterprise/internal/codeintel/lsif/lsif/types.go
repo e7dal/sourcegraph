@@ -30,7 +30,7 @@ type Range struct {
 	ReferenceResultID  int
 	HoverResultID      int
 
-	Tag SymbolTag
+	Tag *protocol.RangeSymbolTag
 }
 
 func (d Range) SetDefinitionResultID(id int) Range {
@@ -133,26 +133,4 @@ type Diagnostic struct {
 	StartCharacter int
 	EndLine        int
 	EndCharacter   int
-}
-
-type SymbolResultList struct {
-	// At most 1 can be non-zero.
-	RangeBased []RangeBasedDocumentSymbol
-	Inline     []protocol.DocumentSymbol
-}
-
-type RangeBasedDocumentSymbol struct {
-	ID       int
-	Children []RangeBasedDocumentSymbol
-}
-
-type SymbolTag struct {
-	Type                    string
-	Text                    string
-	Kind                    int
-	FullRangeStartLine      int
-	FullRangeStartCharacter int
-	FullRangeEndLine        int
-	FullRangeEndCharacter   int
-	Detail                  string
 }

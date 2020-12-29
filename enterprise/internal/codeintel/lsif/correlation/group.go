@@ -26,6 +26,7 @@ type GroupedBundleDataChans struct {
 	References        chan lsifstore.MonikerLocations
 	Packages          []lsifstore.Package
 	PackageReferences []lsifstore.PackageReference
+	Symbols           []lsifstore.SymbolData
 }
 
 type GroupedBundleDataMaps struct {
@@ -36,6 +37,7 @@ type GroupedBundleDataMaps struct {
 	References        map[string]map[string][]lsifstore.LocationData
 	Packages          []lsifstore.Package
 	PackageReferences []lsifstore.PackageReference
+	Symbols           []lsifstore.SymbolData
 }
 
 const MaxNumResultChunks = 1000
@@ -111,7 +113,7 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 		Monikers:           map[lsifstore.ID]lsifstore.MonikerData{},
 		PackageInformation: map[lsifstore.ID]lsifstore.PackageInformationData{},
 		Diagnostics:        make([]lsifstore.DiagnosticData, 0, state.Diagnostics.SetLen(documentID)),
-		Symbols:            make([]lsifstore.DocumentSymbolData, 0, state.DocumentSymbols.SetLen(documentID)),
+		Symbols:            make([]lsifstore.SymbolData, 0, state.DocumentSymbols.SetLen(documentID)),
 	}
 
 	state.Contains.SetEach(documentID, func(rangeID int) {
@@ -172,12 +174,12 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 	})
 
 	state.DocumentSymbols.SetEach(documentID, func(documentSymbolID int) {
-		var fromRangeBased func(documentSymbol lsif.RangeBasedDocumentSymbol) lsifstore.DocumentSymbolData
-		fromRangeBased = func(documentSymbol lsif.RangeBasedDocumentSymbol) lsifstore.DocumentSymbolData {
-			rangeID := documentSymbol.ID
+		var fromRangeBased func(documentSymbol protocol.RangeBasedDocumentSymbol) lsifstore.SymbolData
+		fromRangeBased = func(documentSymbol protocol.RangeBasedDocumentSymbol) lsifstore.SymbolData {
+			rangeID := int(documentSymbol.ID)
 			rangeData := state.RangeData[rangeID]
 
-			data := lsifstore.DocumentSymbolData{
+			data := lsifstore.SymbolData{
 				Type:   rangeData.Tag.Type,
 				Text:   rangeData.Tag.Text,
 				Detail: rangeData.Tag.Detail,
@@ -187,8 +189,8 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 					End:   lsifstore.Position{Line: rangeData.EndLine, Character: rangeData.EndCharacter},
 				},
 				FullRange: lsifstore.Range{
-					Start: lsifstore.Position{Line: rangeData.Tag.FullRangeStartLine, Character: rangeData.Tag.FullRangeStartCharacter},
-					End:   lsifstore.Position{Line: rangeData.Tag.FullRangeEndLine, Character: rangeData.Tag.FullRangeEndCharacter},
+					Start: lsifstore.Position{Line: rangeData.Tag.FullRange.Start.Line, Character: rangeData.Tag.FullRange.Start.Character},
+					End:   lsifstore.Position{Line: rangeData.Tag.FullRange.End.Line, Character: rangeData.Tag.FullRange.End.Character},
 				},
 			}
 
@@ -203,13 +205,13 @@ func serializeDocument(state *State, documentID int) lsifstore.DocumentData {
 			document.Symbols = append(document.Symbols, data)
 		}
 
-		var fromInline func(documentSymbol protocol.DocumentSymbol) lsifstore.DocumentSymbolData
-		fromInline = func(documentSymbol protocol.DocumentSymbol) lsifstore.DocumentSymbolData {
-			data := lsifstore.DocumentSymbolData{
+		var fromInline func(documentSymbol protocol.DocumentSymbol) lsifstore.SymbolData
+		fromInline = func(documentSymbol protocol.DocumentSymbol) lsifstore.SymbolData {
+			data := lsifstore.SymbolData{
 				Type:   "definition", // TODO(sqs): can we make this assumption?
 				Text:   documentSymbol.Name,
 				Detail: documentSymbol.Detail,
-				Kind:   int(documentSymbol.Kind),
+				Kind:   documentSymbol.Kind,
 				Range: lsifstore.Range{
 					Start: lsifstore.Position{Line: documentSymbol.SelectionRange.Start.Line, Character: documentSymbol.SelectionRange.Start.Character},
 					End:   lsifstore.Position{Line: documentSymbol.SelectionRange.End.Line, Character: documentSymbol.SelectionRange.End.Character},
